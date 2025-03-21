@@ -1,3 +1,6 @@
+import time
+import random
+
 class ChessEngine():
     def __init__(self):
         self.board = self.initialize()
@@ -29,12 +32,16 @@ class ChessEngine():
         self.board = self.initialize()
         print("Board reset!")
 
+#The main function is code mimiced from the example code from stupid-chess-ai.
 def main():
     ai = ChessEngine()
 
     while True:
-        command = input().strip()
-        if command.startswith("PLAY:"):
+        command = input()
+        time.sleep(random.randrange(1,10)/100)
+        if command.startswith("BOARD:"):
+            ai.set_board(ai, command.removeprefix("BOARD:"))
+        elif command.startswith("PLAY:"):
             move = ai.make_move()
             print(f"MOVE:{move}")
         elif command.startswith("MOVE:"):
