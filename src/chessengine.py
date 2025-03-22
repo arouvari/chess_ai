@@ -8,7 +8,8 @@ class ChessEngine():
         self.turn = "white"
 
 
-    #This function initializes the chessboard as 8x8 mailbox with each letter representing a piece, white pieces are in uppercase and black pieces in lower case.
+    #This function initializes the chessboard as 8x8 mailbox with each letter representing a piece,
+    #white pieces are in uppercase and black pieces in lower case.
     #Empty squares are represented as a space.
     def initialize(self):
         return [
@@ -57,19 +58,20 @@ class Move():
 
     #Converting chessboard row and column numbers to chessnotation.
     def getChessNotation(self):
-        nameConvert = {'r':'R', 'R':'R', 'b':'B', 'B':'B', 'n':'N', 'N':'N', 'q':'Q', 'Q':'Q', 'k':'K', 'K':'K'}
-        notation = ''
-        if self.pieceCaptured == ' ':
-            if self.pieceMoved in ('P', 'p'):
+        nameConvert = {"r":"R", "R":"R", "b":"B", "B":"B", "n":"N",
+        "N":"N", "q":"Q", "Q":"Q", "k":"K", "K":"K"}
+        notation = ""
+        if self.pieceCaptured == " ":
+            if self.pieceMoved in ("P", "p"):
                 notation = self.getRankFile(self.endRow, self.endCol)
             else:
-                notation = nameConvert.get(self.pieceMoved, '') + self.getRankFile(self.endRow, self.endCol)
+                notation = nameConvert.get(self.pieceMoved, "") + self.getRankFile(self.endRow, self.endCol)
         else:
-            if self.pieceMoved in ('P', 'p'):
+            if self.pieceMoved in ("P", "p"):
                 start_file = self.colsToFiles[self.startCol]
                 notation = f"{start_file}x{self.getRankFile(self.endRow, self.endCol)}"
             else:
-                piece = nameConvert.get(self.pieceMoved, '')
+                piece = nameConvert.get(self.pieceMoved, "")
                 notation = f"{piece}x{self.getRankFile(self.endRow, self.endCol)}"
         return notation
 
