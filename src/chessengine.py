@@ -23,22 +23,24 @@ class ChessEngine():
             ["R", "N", "B", "Q", "K", "B", "N", "R"]
         ]
 
-    def make_move(self, move):
+    def makeMove(self, move):
         self.board[move.startRow][move.startCol] = " "
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.moves.append(move)
         self.turn = "black" if self.turn == "white" else "white"
         return move.getChessNotation()
 
-    def handle_move(self, move):
+    def handleMove(self, move):
         print(f"Received move: {move}")
 
-    def set_board(self, board_state):
+    def setBoard(self, board_state):
         print(f"Set board to: {board_state}")
 
-    def reset_board(self):
+    def resetBoard(self):
         self.board = self.initialize()
         print("Board reset!")
+
+    def possibleMoves():
 
 
 class Move():
@@ -79,6 +81,7 @@ class Move():
     def getRankFile(self, r, c):
         return self.colsToFiles[c]+self.rowsToRanks[r]
 
+
 #The main function is code mimiced from the example code from stupid-chess-ai.
 def main():
     ai = ChessEngine()
@@ -87,16 +90,16 @@ def main():
         command = input()
         time.sleep(random.randrange(1,10)/100)
         if command.startswith("BOARD:"):
-            ai.set_board(command.removeprefix("BOARD:"))
+            ai.setBoard(command.removeprefix("BOARD:"))
         elif command.startswith("PLAY:"):
             dummy = Move((0, 0),(0, 0), ai.board)
-            move = ai.make_move(dummy)
+            move = ai.makeMove(dummy)
             print(f"MOVE:{move}")
         elif command.startswith("MOVE:"):
             move = command.removeprefix("MOVE:")
-            ai.handle_move(move)
+            ai.handleMove(move)
         elif command.startswith("RESET:"):
-            ai.reset_board()
+            ai.resetBoard()
         else:
             print(f"Unknown command: {command}")
 
