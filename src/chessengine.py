@@ -141,7 +141,7 @@ class ChessEngine():
                         pieceType = endPiece.upper()
                         if (0 <= j <= 3 and pieceType == "R") or \
                             (4 <= j <= 7 and pieceType == "B") or \
-                            (i == 1 and pieceType == "P" and ((enemy == "w" and 4 <= j <= 5) or (enemy == "b" and 6 <= j <= 7))) or \
+                            (i == 1 and pieceType == "P" and ((enemy == "w" and 6 <= j <= 7) or (enemy == "b" and 4 <= j <= 5))) or \
                             (pieceType == "Q") or (i==1 and pieceType == "K"):
 
                             if possiblePin == ():
