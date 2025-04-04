@@ -85,7 +85,7 @@ class ChessEngine():
                             break
                 for i in range(len(moves)-1, -1, -1):
                     if moves[i].pieceMoved[1] != "K":
-                        if not (moves[i].endRow, moves[i],endCol) in validSquares:
+                        if not (moves[i].endRow, moves[i].endCol) in validSquares:
                             moves.remove(moves[i])
             else:
                 self.getKingMoves(kingRow, kingCol, moves)
@@ -102,7 +102,7 @@ class ChessEngine():
             enemy = "b"
             ally = "w"
             startRow = self.wKingLocation[0]
-            starCol = self.wKingLocation[1]
+            startCol = self.wKingLocation[1]
 
         else:
             enemy = "w"
@@ -116,12 +116,12 @@ class ChessEngine():
             possiblePin = ()
             for i in range(1, 8):
                 endRow = startRow+d[0]*i
-                endCol = startCOl+d[1]*i
+                endCol = startCol+d[1]*i
                 if 0 <= endRow < 8 and 0 <= endCol < 8:
                     endPiece = self.board[endRow][endCol]
-                    if endPiece[0] == ally:
+                    if endPiece[0] == ally and endPiece[1] != "K":
                         if possiblePin == ():
-                            possiblePin (endRow, endCol, d[0], d[1])
+                            possiblePin = (endRow, endCol, d[0], d[1])
                         else:
                             break
                     elif endPiece[0] == enemy:
@@ -133,7 +133,7 @@ class ChessEngine():
 
                             if possiblePin == ():
                                 check = True
-                                checks.append((endrow, endCol, d[0], d[1]))
+                                checks.append((endRow, endCol, d[0], d[1]))
                                 break
                             else:
                                 pins.append(possiblePin)
@@ -154,7 +154,7 @@ class ChessEngine():
 
 
     #Function for determining if king is in check
-    def check(self):
+    def isInCheck(self):
         if self.turn == "white":
             return self.underAttack(self.wKingLocation[0], self.wKingLocation[1])
         else:
@@ -204,18 +204,18 @@ class ChessEngine():
                         moves.append(Move((r, c), (r-1, c-1), self.board))
             if c+1 <= 7:
                 if self.board[r-1][c+1][0] == "b":
-                    if not piecePinned or pinDirection = (-1, 1):
+                    if not piecePinned or pinDirection == (-1, 1):
                         moves.append(Move((r, c), (r-1, c+1), self.board))
         else:
             if self.board[r+1][c] == " ":
                 if not piecePinned or pinDirection == (1, 0):
                     moves.append(Move((r, c), (r+1, c), self.board))
                     if r == 1 and self.board[r+2][c] == " ":
-                    m   oves.append(Move((r,c), (r+2, c), self.board))
+                        moves.append(Move((r,c), (r+2, c), self.board))
 
             if c-1 >= 0:
                 if self.board[r+1][c-1][0] == "w":
-                    if not piecePinned or pinDirection == (1 -1):
+                    if not piecePinned or pinDirection == (1, -1):
                         moves.append(Move((r, c), (r+1, c-1), self.board))
             if c+1 <= 7:
                 if self.board[r+1][c+1][0] == "w":
@@ -245,7 +245,7 @@ class ChessEngine():
                 endCol = c+d[1]*i
                 if 0 <= endRow < 8 and 0 <= endCol < 8:
                     if not piecePinned or pinDirection == d or pinDirection == (-d[0], -d[1]):
-                    endPiece = self.board[endRow][endCol]
+                        endPiece = self.board[endRow][endCol]
                     if endPiece == " ":
                         moves.append(Move((r, c), (endRow, endCol), self.board))
                     elif endPiece[0] == enemy:
@@ -275,16 +275,16 @@ class ChessEngine():
             endCol = c+m[1]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
                 if not piecePinned:
-                    endPiece = self.bard[endRow][endCol]
+                    endPiece = self.board[endRow][endCol]
                     if endPiece[0] != ally:
-                    m   oves.append(Move((r, c), (endRow, endCol), self.board))
+                        moves.append(Move((r, c), (endRow, endCol), self.board))
 
     #Rules for all possible bishop moves
     def getBishopMoves(self, r, c, moves):
         piecePinned = False
         pinDirection = ()
         for i in range(len(self.pins)-1, -1, -1):
-            if self.pins[i][0] = r and self.pins[i][1] == c:
+            if self.pins[i][0] == r and self.pins[i][1] == c:
                 piecePinned = True
                 pinDirection = (self.pins[i][2], self.pins[i][3])
                 self.pins.remove(self.pins[i])
