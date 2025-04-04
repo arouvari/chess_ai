@@ -9,7 +9,6 @@ class ChessEngine():
         #Function for getting moves for different pieces
         self.pieceMoves = {"P": self.getPawnMoves, "R": self.getRookMoves, "N": self.getKnightMoves,
                          "B": self.getBishopMoves, "Q": self.getQueenMoves, "K":self.getKingMoves}
-
         #Starting locations for white and black kings
         self.wKingLocation = (7, 4)
         self.bKingLocation = (0, 4)
@@ -48,7 +47,14 @@ class ChessEngine():
                 self.bKingLocation = (move.endRow, move.endCol)
         return move.getUCI()
 
-    def handleMove(self, move):
+    #This function get's the move from the engine and translates the UCI notation to the move
+    def handleMove(self, move_uci):
+        start_col = Move.filesToCols[move_uci[0]]
+        start_row = Move.ranksToRows[move_uci[1]]
+        end_col = Move.filesToCols[move_uci[2]]
+        end_row = Move.ranksToRows[move_uci[3]]
+        move = Move((start_row, start_col), (end_row, end_col), self.board)
+        self.makeMove(move)
         print(f"Received move: {move}")
 
     def setBoard(self, board_state):
@@ -58,6 +64,7 @@ class ChessEngine():
         self.board = self.initialize()
         print("Board reset!")
 
+    #Function that chooses a random move for the AI from the valid moves.
     def randomMove(self, validMoves):
         return random.choice(validMoves) if validMoves else None
 
@@ -98,6 +105,7 @@ class ChessEngine():
 
         return moves
 
+    #Finds all possible pins and checks based on the locations of the pieces.
     def pinsAndChecks(self):
         pins = []
         checks = []
@@ -133,7 +141,7 @@ class ChessEngine():
                         pieceType = endPiece.upper()
                         if (0 <= j <= 3 and pieceType == "R") or \
                             (4 <= j <= 7 and pieceType == "B") or \
-                            (i == 1 and pieceType == "p" and ((enemy == "w" and 6 <= j <= 7) or (enemy == "b" and 4 <= j <= 5))) or \
+                            (i == 1 and pieceType == "P" and ((enemy == "w" and 4 <= j <= 5) or (enemy == "b" and 6 <= j <= 7))) or \
                             (pieceType == "Q") or (i==1 and pieceType == "K"):
 
                             if possiblePin == ():
@@ -168,14 +176,14 @@ class ChessEngine():
     #Helper function for check detection
     def underAttack(self, r, c):
         self.turn = "black"
-        enemyMoves = self.possibleMoves()
+        enemyMoves = self.validMoves()
         self.turn = "white"
         for move in enemyMoves:
             if move.endRow == r and move.endCol == c:
                 return True
         return False
 
-    #Finding all possible moves for white and black
+    #Finding all possible moves for white and black.
     def possibleMoves(self):
         moves = []
         for r in range(len(self.board)):
@@ -187,7 +195,7 @@ class ChessEngine():
                     self.pieceMoves[piece.upper()](r, c, moves)
         return moves
 
-    #Rules for all possible pawn moves
+    #Rules for all possible pawn moves.
     def getPawnMoves(self, r, c, moves):
         piecePinned = False
         pinDirection = ()
@@ -226,10 +234,10 @@ class ChessEngine():
                 if self.board[r+1][c+1] != " " and self.board[r+1][c+1].isupper():
                     if not piecePinned or pinDirection == (1, 1):
                         moves.append(Move((r, c), (r+1, c+1), self.board))
-    #No en passant or pawn promotion
+    #No en passant or pawn promotion.
 
 
-    #Rules for all possible rook moves
+    #Rules for all possible rook moves.
     def getRookMoves(self, r, c, moves):
         piecePinned = False
         pinDirection = ()
@@ -260,9 +268,9 @@ class ChessEngine():
                         break
                 else:
                     break
-    #No castling possiblity as of yet
+    #No castling possibility as of yet.
 
-    #Rules for all possible knight moves
+    #Rules for all possible knight moves.
     def getKnightMoves(self, r, c, moves):
         piecePinned = False
         pinDirection = ()
@@ -365,8 +373,13 @@ class Move():
     def getUCI(self):
         return self.getRankFile(self.startRow, self.startCol)+self.getRankFile(self.endRow, self.endCol)
 
+    #Helper function for translating to UCI.
     def getRankFile(self, r, c):
         return self.colsToFiles[c]+self.rowsToRanks[r]
+
+    #For correct chess notation print in AI platform console#
+    def __repr__(self):
+        return self.getUCI()
 
 
 #The main function is code mimiced from the example code from stupid-chess-ai.
@@ -379,7 +392,6 @@ def main():
         if command.startswith("BOARD:"):
             ai.setBoard(command.removeprefix("BOARD:"))
         elif command.startswith("PLAY:"):
-            ai.turn = "black"
             valid = ai.validMoves()
             enemy_move = ai.randomMove(valid)
             if enemy_move is not None:
