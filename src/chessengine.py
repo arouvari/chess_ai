@@ -315,15 +315,26 @@ class ChessEngine():
 
     #Rules for all possible king moves
     def getKingMoves(self, r, c, moves):
-        kingMoves = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
+        rowMoves = (-1, -1, -1, 0, 0, 1, 1, 1)
+        colMoves = (-1, 0, 1, -1, 1, -1, 0, 1)
         ally = "w" if self.turn == "white" else "b"
         for i in range(8):
-            endRow = r+kingMoves[i][0]
-            endCol = c+kingMoves[i][1]
+            endRow = r+rowMoves[i]
+            endCol = c+colMoves[i]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
                 endPiece = self.board[endRow][endCol]
                 if endPiece[0] != ally:
-                    moves.append(Move((r, c), (endRow, endCol), self.board))
+                    if ally == "w":
+                        self.wKingLocation = (endRow, endCol)
+                    else:
+                        self.bKingLocation = (endRow, endCol)
+                    check, pins, checks = self.pinsAndChecks()
+                    if not check:
+                        moves.append(Move((r, c), (endRow, endCol), self.board))
+                    if ally == "w":
+                        self.wKingLocation = (r, c)
+                    else:
+                        self.bKingLocation = (r, c)
 
 
 class Move():
