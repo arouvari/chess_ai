@@ -7,7 +7,7 @@ class ChessEngine():
         self.moves = []
         self.turn = "white"
         #Function for getting moves for different pieces
-        self.pieceMoves = {"p": self.getPawnMoves, "R": self.getRookMoves, "N": self.getKnightMoves,
+        self.pieceMoves = {"P": self.getPawnMoves, "R": self.getRookMoves, "N": self.getKnightMoves,
                          "B": self.getBishopMoves, "Q": self.getQueenMoves, "K":self.getKingMoves}
 
         #Starting locations for white and black kings
@@ -41,11 +41,12 @@ class ChessEngine():
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.moves.append(move)
         self.turn = "black" if self.turn == "white" else "white"
-        if move.pieceMoved == "K":
-            self.wKingLocation = (move.endRow, move.endCol)
-        elif move.pieceMoved == "k":
-            self.bKingLocation = (move.endRow, move.endCol)
-        return move.getChessNotation()
+        if move.pieceMoved.upper() == "K":
+            if move.pieceMoved.isupper():
+                self.wKingLocation = (move.endRow, move.endCol)
+            else:
+                self.bKingLocation = (move.endRow, move.endCol)
+        return move.getUCI()
 
     def handleMove(self, move):
         print(f"Received move: {move}")
@@ -56,6 +57,9 @@ class ChessEngine():
     def resetBoard(self):
         self.board = self.initialize()
         print("Board reset!")
+
+    def randomMove(self, validMoves):
+        return random.choice(validMoves) if validMoves else None
 
     #Checking for checkmate, stalemate and removing own moves that put you in check
     def validMoves(self):
@@ -75,7 +79,7 @@ class ChessEngine():
                 checkCol = check[1]
                 checkingPiece = self.board[checkRow][checkCol]
                 validSquares = []
-                if checkingPiece[1] == "N":
+                if checkingPiece.upper() == "N":
                     validSquares = [(checkRow, checkCol)]
                 else:
                     for i in range(1, 8):
@@ -84,7 +88,7 @@ class ChessEngine():
                         if validSquare[0] == checkRow and validSquare[1] == checkCol:
                             break
                 for i in range(len(moves)-1, -1, -1):
-                    if moves[i].pieceMoved[1] != "K":
+                    if moves[i].pieceMoved.upper() != "K":
                         if not (moves[i].endRow, moves[i].endCol) in validSquares:
                             moves.remove(moves[i])
             else:
@@ -119,17 +123,18 @@ class ChessEngine():
                 endCol = startCol+d[1]*i
                 if 0 <= endRow < 8 and 0 <= endCol < 8:
                     endPiece = self.board[endRow][endCol]
-                    if endPiece[0] == ally and endPiece[1] != "K":
+                    if endPiece != " " and ((self.turn == "white" and endPiece.isupper() and endPiece != "K") or
+                                            (self.turn == "black" and endPiece.islower() and endPiece != "k")):
                         if possiblePin == ():
                             possiblePin = (endRow, endCol, d[0], d[1])
                         else:
                             break
-                    elif endPiece[0] == enemy:
-                        type = endPiece[1]
-                        if (0 <= j <= 3 and type == "R") or \
-                            (4 <= j <= 7 and type == "B") or \
-                            (i == 1 and type == "p" and ((enemy == "w" and 6 <= j <= 7) or (enemy == "b" and 4 <= j <= 5))) or \
-                            (type == "Q") or (i==1 and type == "K"):
+                    elif endPiece != " " and ((self.turn == "white" and endPiece.islower()) or (self.turn == "black" and endPiece.isupper())):
+                        pieceType = endPiece.upper()
+                        if (0 <= j <= 3 and pieceType == "R") or \
+                            (4 <= j <= 7 and pieceType == "B") or \
+                            (i == 1 and pieceType == "p" and ((enemy == "w" and 6 <= j <= 7) or (enemy == "b" and 4 <= j <= 5))) or \
+                            (pieceType == "Q") or (i==1 and pieceType == "K"):
 
                             if possiblePin == ():
                                 check = True
@@ -146,10 +151,10 @@ class ChessEngine():
             endCol = startCol+m[1]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
                 endPiece = self.board[endRow][endCol]
-                if endPiece[0] == enemy and endPiece[1] == "N":
-                    check = True
-                    checks.append((endRow, endCol, m[0], m[1]))
-
+                if endPiece != " " and ((self.turn == "white" and endPiece.islower()) or (self.turn == "black" and endPiece.isupper())):
+                    if endPiece.upper() == "N":
+                        check = True
+                        checks.append((endRow, endCol, m[0], m[1]))
         return check, pins, checks
 
 
@@ -160,7 +165,7 @@ class ChessEngine():
         else:
             return self.underAttack(self.bKingLocation[0], self.bKingLocation[1])
 
-    #Help function for check function
+    #Helper function for check detection
     def underAttack(self, r, c):
         self.turn = "black"
         enemyMoves = self.possibleMoves()
@@ -175,10 +180,11 @@ class ChessEngine():
         moves = []
         for r in range(len(self.board)):
             for c in range(len(self.board[r])):
-                turn = self.board[r][c][0]
-                if (turn == "w" and self.turn == "white") or (turn == "b" and self.turn == "black"):
-                    piece = self.board[r][c][1]
+                piece = self.board[r][c]
+                if self.turn == "white" and piece.isupper():
                     self.pieceMoves[piece](r, c, moves)
+                elif self.turn == "black" and piece.islower():
+                    self.pieceMoves[piece.upper()](r, c, moves)
         return moves
 
     #Rules for all possible pawn moves
@@ -193,17 +199,17 @@ class ChessEngine():
                 break
 
         if self.turn == "white":
-            if self.board[r-1][c] == " ":
+            if self.board[r -1][c] == " ":
                 if not piecePinned or pinDirection == (-1, 0):
                     moves.append(Move((r, c), (r-1, c), self.board))
                     if r == 6 and self.board[r-2][c] == " ":
                         moves.append(Move((r, c), (r-2, c), self.board))
             if c-1 >= 0:
-                if self.board[r-1][c-1][0] == "b":
+                if self.board[r-1][c-1] != " " and self.board[r-1][c-1].islower():
                     if not piecePinned or pinDirection == (-1, -1):
                         moves.append(Move((r, c), (r-1, c-1), self.board))
             if c+1 <= 7:
-                if self.board[r-1][c+1][0] == "b":
+                if self.board[r-1][c+1] != " " and self.board[r-1][c+1].islower():
                     if not piecePinned or pinDirection == (-1, 1):
                         moves.append(Move((r, c), (r-1, c+1), self.board))
         else:
@@ -211,14 +217,13 @@ class ChessEngine():
                 if not piecePinned or pinDirection == (1, 0):
                     moves.append(Move((r, c), (r+1, c), self.board))
                     if r == 1 and self.board[r+2][c] == " ":
-                        moves.append(Move((r,c), (r+2, c), self.board))
-
+                        moves.append(Move((r, c), (r+2, c), self.board))
             if c-1 >= 0:
-                if self.board[r+1][c-1][0] == "w":
+                if self.board[r+1][c-1] != " " and self.board[r+1][c-1].isupper():
                     if not piecePinned or pinDirection == (1, -1):
                         moves.append(Move((r, c), (r+1, c-1), self.board))
             if c+1 <= 7:
-                if self.board[r+1][c+1][0] == "w":
+                if self.board[r+1][c+1] != " " and self.board[r+1][c+1].isupper():
                     if not piecePinned or pinDirection == (1, 1):
                         moves.append(Move((r, c), (r+1, c+1), self.board))
     #No en passant or pawn promotion
@@ -232,12 +237,12 @@ class ChessEngine():
             if self.pins[i][0] == r and self.pins[i][1] == c:
                 piecePinned = True
                 pinDirection = (self.pins[i][2], self.pins[i][3])
-                if self.board[r][c][1] != "Q":
+                if self.board[r][c].upper() != "Q":
                     self.pins.remove(self.pins[i])
                 break
 
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1))
-        enemy = "b" if self.turn == "white" else "w"
+        enemy = (lambda p: p == " " or (self.turn == "white" and p.islower()) or (self.turn == "black" and p.isupper()))
 
         for d in directions:
             for i in range(1, 8):
@@ -248,7 +253,7 @@ class ChessEngine():
                         endPiece = self.board[endRow][endCol]
                     if endPiece == " ":
                         moves.append(Move((r, c), (endRow, endCol), self.board))
-                    elif endPiece[0] == enemy:
+                    elif (self.turn == "white" and endPiece.islower()) or (self.turn == "black" and endPiece.isupper()):
                         moves.append(Move((r, c), (endRow, endCol), self.board))
                         break
                     else:
@@ -269,15 +274,14 @@ class ChessEngine():
                 break
 
         knightMoves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
-        ally = "w" if self.turn == "white" else "b"
         for m in knightMoves:
             endRow = r+m[0]
             endCol = c+m[1]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
-                if not piecePinned:
                     endPiece = self.board[endRow][endCol]
-                    if endPiece[0] != ally:
-                        moves.append(Move((r, c), (endRow, endCol), self.board))
+                    if endPiece == " " or (self.turn == "white" and endPiece.islower()) or (self.turn == "black" and endPiece.isupper()):
+                        if not piecePinned:
+                            moves.append(Move((r, c), (endRow, endCol), self.board))
 
     #Rules for all possible bishop moves
     def getBishopMoves(self, r, c, moves):
@@ -290,8 +294,6 @@ class ChessEngine():
                 self.pins.remove(self.pins[i])
                 break
         directions = ((-1, -1), (-1, 1), (1, -1), (1, 1))
-        enemy = "b" if self.turn == "white" else "w"
-
         for d in directions:
             for i in range(1, 8):
                 endRow = r+d[0]*i
@@ -301,7 +303,7 @@ class ChessEngine():
                         endPiece = self.board[endRow][endCol]
                         if endPiece == " ":
                             moves.append(Move((r, c), (endRow, endCol), self.board))
-                        elif endPiece[0] == enemy:
+                        elif (self.turn == "white" and endPiece.islower()) or (self.turn == "black" and endPiece.isupper()):
                             moves.append(Move((r, c), (endRow, endCol), self.board))
                             break
                         else:
@@ -323,7 +325,8 @@ class ChessEngine():
             endCol = c+colMoves[i]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
                 endPiece = self.board[endRow][endCol]
-                if endPiece[0] != ally:
+                if endPiece == " " or (endPiece != " " and ((self.turn == "white" and endPiece.islower()) or (
+                    self.turn == "black" and endPiece.isupper()))):
                     if ally == "w":
                         self.wKingLocation = (endRow, endCol)
                     else:
@@ -376,9 +379,14 @@ def main():
         if command.startswith("BOARD:"):
             ai.setBoard(command.removeprefix("BOARD:"))
         elif command.startswith("PLAY:"):
-            dummy = Move((0, 0),(0, 0), ai.board)
-            move = ai.makeMove(dummy)
-            print(f"MOVE:{move.getUCI}")
+            ai.turn = "black"
+            valid = ai.validMoves()
+            enemy_move = ai.randomMove(valid)
+            if enemy_move is not None:
+                ai.makeMove(enemy_move)
+                print(f"MOVE:{enemy_move.getUCI()}")
+            else:
+                print("No valid moves!")
         elif command.startswith("MOVE:"):
             move = command.removeprefix("MOVE:")
             ai.handleMove(move)
