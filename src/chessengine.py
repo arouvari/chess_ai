@@ -387,7 +387,7 @@ class Move():
         return self.getUCI()
 
 
-#The main function is code mimiced from the example code from stupid-chess-ai.
+#The main function is code copied and edited from the example code from stupid-chess-ai.
 def main():
     ai = ChessEngine()
 

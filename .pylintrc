@@ -10,6 +10,10 @@ disable=
     line-too-long,
     invalid-name,
     no-self-use,
+    too-many-branches,
+    too-many-instance-attributes,
+    too-many-locals,
+    too-many-boolean-expressions
 
 [FORMAT]
 max-line-length=100
