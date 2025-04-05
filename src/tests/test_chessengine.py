@@ -51,7 +51,7 @@ def test_handle_move(engine):
     assert engine.turn == "black"
 
 #Checking that validMoves has all 20 possible moves in the starting position for white.
-#2 possible moves for 8 pawns and 2 possible moves
+#2 possible moves for 8 pawns and 2 possible moves for 2 knights.
 def test_valid_moves_(engine):
     moves = engine.validMoves()
     assert len(moves) == 20
