@@ -70,4 +70,7 @@ def test_check_detection(engine):
     engine.board[3][4] = "k"
     engine.board[1][4] = " "
     engine.board[4][5] = "q"
+    engine.wKingLocation = (4, 4)
+    engine.bKingLocation = (3, 4)
+    print(engine.board)
     assert engine.isInCheck()
