@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "chess-ai"
+name = "chess_ai"
 version = "0.1.0"
 description = ""
 authors = ["August Rouvari <august.rouvari@helsinki.fi>"]
@@ -12,6 +12,12 @@ coverage = "^7.7.1"
 pytest = "^8.3.5"
 
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

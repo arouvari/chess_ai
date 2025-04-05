@@ -64,9 +64,14 @@ class ChessEngine():
         self.board = self.initialize()
         print("Board reset!")
 
-    #Function that chooses a random move for the AI from the valid moves.
+    #########################################################################################
+    #########################################################################################
+    #This function generates random moves for the AI from valid moves, made for testing that AI platform works correctly
+    #and moving rules, checks and pins work. Will be replaced by Minmax algorithm.
     def randomMove(self, validMoves):
         return random.choice(validMoves) if validMoves else None
+    #########################################################################################
+    #########################################################################################
 
     #Checking for checkmate, stalemate and removing own moves that put you in check
     def validMoves(self):
