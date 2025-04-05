@@ -4,7 +4,7 @@
 
 ## Installation
 - Clone this project to your desktop
-- Follow these instructions on downloading and using the AI platform: https://algolabra-hy.github.io/aiplatform-fi
+- Follow these instructions on downloading and using the AI platform: https://algolabra-hy.github.io/aiplatform-en
 
 ## Documentation
 - [Specification document](docs/specification.md)
