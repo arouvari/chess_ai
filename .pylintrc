@@ -13,7 +13,8 @@ disable=
     too-many-instance-attributes,
     too-many-locals,
     too-many-boolean-expressions,
-    too-many-nested-blocks
+    too-many-nested-blocks,
+    too-many-public-methods
 
 [FORMAT]
 max-line-length=100

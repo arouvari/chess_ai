@@ -85,6 +85,39 @@ class ChessEngine:
     def randomMove(validMoves):
         return random.choice(validMoves) if validMoves else None
 
+    def bestMove(self, depth=3):
+        _, best_move = self.minimax(depth, self.turn == "white")
+        return best_move
+
+    def minimax(self, depth, MaximizingPlayer):
+        valid_moves = self.validMoves()
+        if depth == 0 or not valid_moves:
+            return self.evaluateBoard(self.board), None
+        if MaximizingPlayer:
+            max_value = float("-inf")
+            best_move = None
+            for move in valid_moves:
+                self.makeMove(move)
+                value, _ = self.minimax(depth-1, False)
+                self.undoMove()
+                if value > max_value:
+                    max_value = value
+                    best_move = move
+            return max_value, best_move
+
+        min_value = float("inf")
+        best_move = None
+        for move in valid_moves:
+            self.makeMove(move)
+            value, _ = self.minimax(depth-1, True)
+            self.undoMove()
+            if value > min_value:
+                min_value = value
+                best_move = move
+            return min_value, best_move
+
+
+
 
     def evaluateBoard(self, board):
         valid_moves = self.validMoves()
@@ -439,11 +472,10 @@ def main():
         if command.startswith("BOARD:"):
             ai.setBoard(command.removeprefix("BOARD:"))
         elif command.startswith("PLAY:"):
-            valid = ai.validMoves()
-            enemy_move = ai.randomMove(valid)
-            if enemy_move is not None:
-                ai.makeMove(enemy_move)
-                print(f"MOVE:{enemy_move.getUCI()}")
+            best_move = ai.bestMove(depth=3)
+            if best_move is not None:
+                ai.makeMove(best_move)
+                print(f"MOVE:{best_move.getUCI()}")
             else:
                 print("No valid moves!")
         elif command.startswith("MOVE:"):
