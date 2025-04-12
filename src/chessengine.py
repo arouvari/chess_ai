@@ -69,6 +69,43 @@ class ChessEngine:
     def randomMove(self, validMoves):
         return random.choice(validMoves) if validMoves else None
 
+
+    def evaluateBoard(self, board):
+        valid_moves = self.validMoves
+        if not valid_moves:
+            if self.isInCheck():
+                #When the player in turn is in checkmate
+                return -9999 if self.turn == "white" else 9999
+            else:
+                #When there is a stalemate
+                return 0
+
+        piece_values = {
+            "P":1, "p":1,
+            "N":3, "n":3,
+            "B":3, "b":3,
+            "R":5, "r":5,
+            "Q":9, "q":9,
+            "K":0, "k":0
+        }
+
+        w_material = 0
+        b_material = 0
+
+        for row in board:
+            for piece in row:
+                if piece == " ":
+                    continue
+                if piece.isupper():
+                    w_material += piece_values.get(piece, 0)
+                else:
+                    b_material += piece_values.get(piece, 0)
+
+        score = w_material-b_material
+        return score if self.turn == "white" else -score
+
+
+
     #Checking for checkmate, stalemate and removing own moves that put you in check
     def validMoves(self):
         moves = []
