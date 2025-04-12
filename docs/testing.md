@@ -9,7 +9,8 @@ What was tested and how:
     mapped correctly and starting turn is for white. Move making and
     move handling functions are tested. There is a test for the
     correct chess notation(UCI) generation. One position is tested for
-    checking if king is in check.
+    checking if king is in check. Testing for the evaluation function is
+    provided.
 
 What types of inputs were used for testing:
     Move generation tests use simple legal starting moves as test inputs.
@@ -17,7 +18,8 @@ What types of inputs were used for testing:
     King checking function is tested with setting the pieces to a clear
     checking position for black and using isInCheck to check that it
     works correctly. Valid starting moves for white are validated by
-    checking that there are exactly 20 possible moves.
+    checking that there are exactly 20 possible moves. Evaluation function is
+    tested using the starting, checkmate and stalemate positions.
 
 How can the tests be reproduced:
     1. Go to the root directory in the terminal
