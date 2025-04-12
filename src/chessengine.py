@@ -59,6 +59,19 @@ class ChessEngine:
         self.makeMove(move)
         print(f"Received move: {move}")
 
+    def undoMove(self):
+        if not self.moves:
+            return
+        move = self.moves.pop()
+        self.board[move.startRow][move.startCol] = move.pieceMoved
+        self.board[move.endRow][move.endCol] = move.pieceCaptured
+        self.turn = "white" if self.turn == "black" else "black"
+        if move.pieceMoved.upper() == "K":
+            if move.pieceMoved.isupper():
+                self.wKingLocation = (move.startRow, move.startCol)
+            else:
+                self.bKingLocation = (move.startRow, move.startCol)
+
     @staticmethod
     def setBoard(board_state):
         print(f"Set board to: {board_state}")
