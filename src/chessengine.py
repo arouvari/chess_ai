@@ -74,7 +74,7 @@ class ChessEngine:
 
 
     def evaluateBoard(self, board):
-        valid_moves = self.validMoves
+        valid_moves = self.validMoves()
         if not valid_moves:
             if self.isInCheck():
                 #When the player in turn is in checkmate
