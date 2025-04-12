@@ -3,7 +3,7 @@ import random
 
 class ChessEngine:
     def __init__(self):
-        self.board = self.initialize()
+        self.board = ChessEngine.initialize()
         self.moves = []
         self.turn = "white"
         #Using right get moves function depending on piece.
@@ -24,7 +24,8 @@ class ChessEngine:
     #This function initializes the chessboard as 8x8 mailbox with each letter representing a piece,
     #white pieces are in uppercase and black pieces in lower case.
     #Empty squares are represented as a space.
-    def initialize(self):
+    @staticmethod
+    def initialize():
         return [
             ["r", "n", "b", "q", "k", "b", "n", "r"],
             ["p", "p", "p", "p", "p", "p", "p", "p"],
@@ -58,15 +59,17 @@ class ChessEngine:
         self.makeMove(move)
         print(f"Received move: {move}")
 
-    def setBoard(self, board_state):
+    @staticmethod
+    def setBoard(board_state):
         print(f"Set board to: {board_state}")
 
     def resetBoard(self):
-        self.board = self.initialize()
+        self.board = ChessEngine.initialize()
         print("Board reset!")
 
     #Function that chooses a random move for the AI from the valid moves.
-    def randomMove(self, validMoves):
+    @staticmethod
+    def randomMove(validMoves):
         return random.choice(validMoves) if validMoves else None
 
 
@@ -76,9 +79,8 @@ class ChessEngine:
             if self.isInCheck():
                 #When the player in turn is in checkmate
                 return -9999 if self.turn == "white" else 9999
-            else:
-                #When there is a stalemate
-                return 0
+            #When there is a stalemate
+            return 0
 
         piece_values = {
             "P":1, "p":1,
