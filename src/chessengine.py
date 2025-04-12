@@ -111,13 +111,10 @@ class ChessEngine:
             self.makeMove(move)
             value, _ = self.minimax(depth-1, True)
             self.undoMove()
-            if value > min_value:
+            if value < min_value:
                 min_value = value
                 best_move = move
-            return min_value, best_move
-
-
-
+        return min_value, best_move
 
     def evaluateBoard(self, board):
         valid_moves = self.validMoves()
@@ -137,20 +134,19 @@ class ChessEngine:
             "K":0, "k":0
         }
 
-        w_material = 0
-        b_material = 0
+
+        score = 0
 
         for row in board:
             for piece in row:
                 if piece == " ":
                     continue
                 if piece.isupper():
-                    w_material += piece_values.get(piece, 0)
+                    score += piece_values.get(piece, 0)
                 else:
-                    b_material += piece_values.get(piece, 0)
+                    score -= piece_values.get(piece, 0)
 
-        score = w_material-b_material
-        return score if self.turn == "white" else -score
+        return score
 
 
 
@@ -443,7 +439,7 @@ class Move:
         self.endCol = endSq[1]
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol]
-        self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10
+        self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10 + self.endCol
 
     def __eq__(self, other):
         if isinstance(other, Move):
