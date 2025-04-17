@@ -20,6 +20,8 @@ class ChessEngine:
         self.check = False
         self.pins = []
         self.checks = []
+        #For calculating the current material difference between black and white
+        self.score = self.calculateScore()
 
     #This function initializes the chessboard as 8x8 mailbox with each letter representing a piece,
     #white pieces are in uppercase and black pieces in lower case.
@@ -36,8 +38,34 @@ class ChessEngine:
             ["P", "P", "P", "P", "P", "P", "P", "P"],
             ["R", "N", "B", "Q", "K", "B", "N", "R"]
         ]
+    def calculateScore(self):
+        piece_values = {
+            "P":1, "p":1,
+            "N":3, "n":3,
+            "B":3, "b":3,
+            "R":5, "r":5,
+            "Q":9, "q":9,
+            "K":0, "k":0
+        }
+        score = 0
+        for row in self.board:
+            for piece in row:
+                if piece == " ":
+                    continue
+                if piece.isupper():
+                    score += piece_values.get(piece, 0)
+                else:
+                    score -= piece_values.get(piece, 0)
+
+        return score
+
+
 
     def makeMove(self, move):
+        captured_value = 0
+        if move.pieceCaptured != " ":
+            captured_value = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0}.get(move.pieceCaptured.lower(), 0)
+            self.score += captured_value if self.turn == "white" else -captured_value
         self.board[move.startRow][move.startCol] = " "
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.moves.append(move)
@@ -63,6 +91,9 @@ class ChessEngine:
         if not self.moves:
             return
         move = self.moves.pop()
+        if move.pieceCaptured != " ":
+            captured_value = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0}.get(move.pieceCaptured.lower(), 0)
+            self.score -= captured_value if self.turn == "black" else -captured_value
         self.board[move.startRow][move.startCol] = move.pieceMoved
         self.board[move.endRow][move.endCol] = move.pieceCaptured
         self.turn = "white" if self.turn == "black" else "black"
@@ -124,30 +155,7 @@ class ChessEngine:
                 return -9999 if self.turn == "white" else 9999
             #When there is a stalemate
             return 0
-
-        piece_values = {
-            "P":1, "p":1,
-            "N":3, "n":3,
-            "B":3, "b":3,
-            "R":5, "r":5,
-            "Q":9, "q":9,
-            "K":0, "k":0
-        }
-
-
-        score = 0
-
-        for row in board:
-            for piece in row:
-                if piece == " ":
-                    continue
-                if piece.isupper():
-                    score += piece_values.get(piece, 0)
-                else:
-                    score -= piece_values.get(piece, 0)
-
-        return score
-
+        return self.score
 
 
     #Checking for checkmate, stalemate and removing own moves that put you in check
