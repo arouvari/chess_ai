@@ -1,4 +1,5 @@
 # chess_ai
+This is a Chess AI project made for the University of Helsinki course Algorithms and Artificial Intelligence Project.
 
 ![GHA Workflow badge](https://github.com/arouvari/chess_ai/workflows/CI/badge.svg) [![codecov](https://codecov.io/gh/arouvari/chess_ai/graph/badge.svg?token=0B5YL0WV4M)](https://codecov.io/gh/arouvari/chess_ai)
 
