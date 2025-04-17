@@ -23,6 +23,129 @@ class ChessEngine:
         #For calculating the current material difference between black and white
         self.score = self.calculateScore()
 
+        #Preferred board position mappings for different pieces eg. pawn is best on the penultimate row since on next move it can promote.
+        # Source: https://github.com/amir650/BlackWidow-Chess/blob/master/src/com/chess/engine/classic/Alliance.java
+        self.white_pawn_preferred_coordinates = [
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
+            0.3, 0.3, 0.4, 0.6, 0.6, 0.4, 0.3, 0.3,
+            0.1, 0.1, 0.2, 0.4, 0.4, 0.2, 0.1, 0.1,
+            0.05, 0.05, 0.1, 0.2, 0.2, 0.1, 0.05, 0.05,
+            0, 0, 0,-0.1,-0.1, 0, 0, 0,
+            0.05, -0.05,-0.1, 0, 0,-0.1, -0.05, 0.05,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ]
+        self.black_pawn_preferred_coordinates = [
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0.05, -0.05,-0.1,0,0,-0.1,-0.05,0.05,
+            0, 0, 0,-0.1,-0.1, 0, 0, 0,
+            0.05, 0.05, 0.1, 0.2, 0.2, 0.1, 0.05, 0.05,
+            0.1, 0.1, 0.2, 0.4, 0.4, 0.2, 0.1, 0.1,
+            0.3, 0.3, 0.4, 0.6, 0.6, 0.4, 0.3, 0.3,
+            0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ]
+        self.white_knight_preferred_coordinates = [
+            -0.5,-0.4,-0.3,-0.3,-0.3,-0.3,-0.4,-0.5,
+            -0.4,-0.2, 0, 0.05, 0.05, 0,-0.2,-0.4,
+            -0.3, 0.05, 0.1, 0.15, 0.15, 0.1, 0.05,-0.3,
+            -0.3, 0.05, 0.15, 0.2, 0.2, 0.15, 0.05,-0.3,
+            -0.3, 0.05, 0.15, 0.2, 0.2, 0.15, 0.05,-0.3,
+            -0.3, 0.05, 0.1, 0.15, 0.15, 0.1, 0.05,-0.3,
+            -0.4,-0.2, 0, 0, 0, 0,-0.2,-0.4,
+            -0.5,-0.4,-0.3,-0.3,-0.3,-0.3,-0.4,-0.5
+        ]
+        self.black_knight_preferred_coordinates = [
+            -0.5,-0.4,-0.3,-0.3,-0.3,-0.3,-0.4,-0.5,
+            -0.4,-0.2, 0, 0, 0, 0,-0.2,-0.4,
+            -0.3, 0.05, 0.1, 0.15, 0.15, 0.1, 0.05,-0.3,
+            -0.3, 0.05, 0.15, 0.2, 0.2, 0.15, 0.05,-0.3,
+            -0.3, 0.05, 0.15, 0.2, 0.2, 0.15, 0.05,-0.3,
+            -0.3, 0.05, 0.1, 0.15, 0.15, 0.1, 0.05,-0.3,
+            -0.4,-0.2, 0, 0.05, 0.05, 0,-0.2,-0.4,
+            -0.5,-0.4,-0.3,-0.3,-0.3,-0.3,-0.4,-0.5
+        ]
+        self.white_bishop_preferred_coordinates = [
+            -0.2,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.2,
+            -0.1, 0, 0, 0, 0, 0, 0,-0.1,
+            -0.1, 0, 0.05, 0.1, 0.1, 0.05, 0,-0.1,
+            -0.1, 0.05, 0.05, 0.1, 0.1, 0.05, 0.05,-0.1,
+            -0.1, 0, 0.1, 0.15, 0.15, 0.1, 0,-0.1,
+            -0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,-0.1,
+            -0.1, 0.05, 0, 0, 0, 0, 0.05,-0.1,
+            -0.2,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.2
+        ]
+        self.black_bishop_preferred_coordinates = [
+            -0.2,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.2,
+            -0.1, 0.05, 0, 0, 0, 0, 0.05,-0.1,
+            -0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,-0.1,
+            -0.1, 0, 0.1, 0.15, 0.15, 0.1, 0,-0.1,
+            -0.1, 0.05, 0.1, 0.15, 0.15, 0.1, 0.05,-0.1,
+            -0.1, 0, 0.1, 0.1, 0.1, 0.1, 0,-0.1,
+            -0.1, 0, 0, 0, 0, 0, 0,-0.1,
+            -0.2,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.2
+        ]
+        self.white_rook_preferred_coordinates = [
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0.05, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            0, 0, 0, 0.05, 0.05, 0, 0, 0
+        ]
+        self.black_rook_preferred_coordinates = [
+            0, 0, 0, 0.05, 0.05, 0, 0, 0,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            -0.05, 0, 0, 0, 0, 0, 0, -0.05,
+            0.05, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.05,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ]
+        self.white_queen_preferred_coordinates = [
+            -0.2,-0.1,-0.1, -0.05, -0.05,-0.1,-0.1,-0.2,
+            -0.1, 0, 0, 0, 0, 0, 0,-0.1,
+            -0.1, 0, 0.05, 0.05, 0.05, 0.05, 0,-0.1,
+            -0.05, 0, 0.05, 0.1, 0.1, 0.05, 0, -0.05,
+            -0.05, 0, 0.05, 0.1, 0.1, 0.05, 0, -0.05,
+            -0.1, 0, 0.05, 0.05, 0.05, 0.05, 0,-0.1,
+            -0.1, 0, 0, 0, 0, 0, 0,-0.1,
+            -0.2,-0.1,-0.1, -0.05, -0.05,-0.1,-0.1,-0.2
+        ]
+        self.black_queen_preferred_coordinates = [
+            -0.2,-0.1,-0.1, -0.05, -0.05,-0.1,-0.1,-0.2,
+            -0.1, 0, 0.05, 0, 0, 0, 0,-0.1,
+            -0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0,-0.1,
+            -0.05, 0, 0.05, 0.1, 0.1, 0.05, 0, -0.05,
+            -0.05, 0, 0.05, 0.1, 0.1, 0.05, 0, -0.05,
+            -0.1, 0, 0.05, 0.05, 0.05, 0.05, 0,-0.1,
+            -0.1, 0, 0, 0, 0, 0, 0,-0.1,
+            -0.2,-0.1,-0.1, -0.05, -0.05,-0.1,-0.1,-0.2
+        ]
+        self.white_king_preferred_coordinates = [
+            -0.5,-0.3,-0.3,-0.3,-0.3,-0.3,-0.3,-0.5,
+            -0.3,-0.3, 0, 0, 0, 0,-0.3,-0.3,
+            -0.3,-0.1, 0.2, 0.3, 0.3, 0.2,-0.1,-0.3,
+            -0.3,-0.1, 0.3, 0.4, 0.4, 0.3,-0.1,-0.3,
+            -0.3,-0.1, 0.3, 0.4, 0.4, 0.3,-0.1,-0.3,
+            -0.3,-0.1, 0.2, 0.3, 0.3, 0.2,-0.1,-0.3,
+            -0.3,-0.2,-0.1, 0, 0,-0.1,-0.2,-0.3,
+            -0.5,-0.4,-0.3,-0.2,-0.2,-0.3,-0.4,-0.5
+        ]
+        self.black_king_preferred_coordinates = [
+            -0.5,-0.4,-0.3,-0.2,-0.2,-0.3,-0.4,-0.5,
+            -0.3,-0.2,-0.1, 0, 0,-0.1,-0.2,-0.3,
+            -0.3,-0.1, 0.2, 0.3, 0.3, 0.2,-0.1,-0.3,
+            -0.3,-0.1, 0.3, 0.4, 0.4, 0.3,-0.1,-0.3,
+            -0.3,-0.1, 0.3, 0.4, 0.4, 0.3,-0.1,-0.3,
+            -0.3,-0.1, 0.2, 0.3, 0.3, 0.2,-0.1,-0.3,
+            -0.3,-0.3, 0, 0, 0, 0,-0.3,-0.3,
+            -0.5,-0.3,-0.3,-0.3,-0.3,-0.3,-0.3,-0.5
+        ]
+
     #This function initializes the chessboard as 8x8 mailbox with each letter representing a piece,
     #white pieces are in uppercase and black pieces in lower case.
     #Empty squares are represented as a space.
@@ -179,7 +302,43 @@ class ChessEngine:
                 return -9999 if self.turn == "white" else 9999
             #When there is a stalemate
             return 0
-        return self.score
+        material_score = self.score
+
+        positional_score = 0
+        for r in range(8):
+            for c in range(8):
+                piece = self.board[r][c]
+                if piece == " ":
+                    continue
+                index = r * 8 + c
+                if piece == "P":
+                    positional_score += self.white_pawn_preferred_coordinates[index]
+                elif piece == "p":
+                    positional_score -= self.black_pawn_preferred_coordinates[index]
+                elif piece == "N":
+                    positional_score += self.white_knight_preferred_coordinates[index]
+                elif piece == "n":
+                    positional_score -= self.black_knight_preferred_coordinates[index]
+                elif piece == "B":
+                    positional_score += self.white_bishop_preferred_coordinates[index]
+                elif piece == "b":
+                    positional_score -= self.black_bishop_preferred_coordinates[index]
+                elif piece == "R":
+                    positional_score += self.white_rook_preferred_coordinates[index]
+                elif piece == "r":
+                    positional_score -= self.black_rook_preferred_coordinates[index]
+                elif piece == "Q":
+                    positional_score += self.white_queen_preferred_coordinates[index]
+                elif piece == "q":
+                    positional_score -= self.black_queen_preferred_coordinates[index]
+                elif piece == "K":
+                    positional_score += self.white_king_preferred_coordinates[index]
+                elif piece == "k":
+                    positional_score -= self.black_king_preferred_coordinates[index]
+
+        total_score = material_score+positional_score
+
+        return total_score if self.turn == "white" else -total_score
 
 
     #Checking for checkmate, stalemate and removing own moves that put you in check

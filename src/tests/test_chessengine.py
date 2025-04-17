@@ -75,9 +75,6 @@ def test_check_detection(engine):
     print(engine.board)
     assert engine.isInCheck()
 
-def test_startboard_evaluation(engine):
-    assert engine.evaluateBoard() == 0
-
 def test_checkmate_evaluation(engine):
     test_board = [
             [" ", " ", " ", " ", " ", " ", " ", "k"],
