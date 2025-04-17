@@ -147,7 +147,7 @@ class ChessEngine:
                 best_move = move
         return min_value, best_move
 
-    def evaluateBoard(self, board):
+    def evaluateBoard(self):
         valid_moves = self.validMoves()
         if not valid_moves:
             if self.isInCheck():
