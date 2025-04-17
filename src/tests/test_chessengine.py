@@ -76,7 +76,7 @@ def test_check_detection(engine):
     assert engine.isInCheck()
 
 def test_startboard_evaluation(engine):
-    assert engine.evaluateBoard(engine.board) == 0
+    assert engine.evaluateBoard() == 0
 
 def test_checkmate_evaluation(engine):
     test_board = [
@@ -93,7 +93,7 @@ def test_checkmate_evaluation(engine):
     engine.turn = "black"
     engine.bKingLocation = (0, 7)
     engine.wKingLocation = (7, 4)
-    assert engine.evaluateBoard(engine.board) == 9999
+    assert engine.evaluateBoard() == 9999
 
 def test_stalemate_evaluation(engine):
     test_board = [
@@ -107,4 +107,4 @@ def test_stalemate_evaluation(engine):
             [" ", " ", " ", " ", "K", " ", " ", " "]
         ]
     engine.board = test_board
-    assert engine.evaluateBoard(engine.board) == 0
+    assert engine.evaluateBoard() == 0

@@ -60,14 +60,20 @@ class ChessEngine:
         return score
 
 
-
     def makeMove(self, move):
         captured_value = 0
         if move.pieceCaptured != " ":
             captured_value = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0}.get(move.pieceCaptured.lower(), 0)
             self.score += captured_value if self.turn == "white" else -captured_value
+        if move.promotionChoice:
+            promotion_value = {"q": 9, "r": 5, "n": 3, "b": 3}.get(move.promotionChoice.lower(), 0)
+            pawn_value = 1
+            if self.turn == "white":
+                self.score += (promotion_value-pawn_value)
+            else:
+                self.score -= (promotion_value-pawn_value)
         self.board[move.startRow][move.startCol] = " "
-        self.board[move.endRow][move.endCol] = move.pieceMoved
+        self.board[move.endRow][move.endCol] = move.promotionChoice if move.promotionChoice else move.pieceMoved
         self.moves.append(move)
         self.turn = "black" if self.turn == "white" else "white"
         if move.pieceMoved.upper() == "K":
@@ -79,11 +85,18 @@ class ChessEngine:
 
     #This function get's the move from the engine and translates the UCI notation to the move
     def handleMove(self, move_uci):
+        if len(move_uci) not in (4, 5):
+            raise ValueError(f"Invalid UCI move: {move_uci}")
         start_col = Move.filesToCols[move_uci[0]]
         start_row = Move.ranksToRows[move_uci[1]]
         end_col = Move.filesToCols[move_uci[2]]
         end_row = Move.ranksToRows[move_uci[3]]
-        move = Move((start_row, start_col), (end_row, end_col), self.board)
+        promotion = None
+        if len(move_uci) == 5:
+            if move_uci[4].upper() not in ['Q', 'R', 'N', 'B']:
+                raise ValueError(f"Invalid promotion piece: {move_uci[4]}")
+            promotion = move_uci[4].upper() if self.turn == "white" else move_uci[4].lower()
+        move = Move((start_row, start_col), (end_row, end_col), self.board, promotionChoice=promotion)
         self.makeMove(move)
         print(f"Received move: {move}")
 
@@ -93,7 +106,18 @@ class ChessEngine:
         move = self.moves.pop()
         if move.pieceCaptured != " ":
             captured_value = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0}.get(move.pieceCaptured.lower(), 0)
-            self.score -= captured_value if self.turn == "black" else -captured_value
+            if move.pieceMoved.isupper():
+                self.score -= captured_value
+            else:
+                self.score += captured_value
+        if move.promotionChoice:
+            promotion_value = {"q": 9, "r": 5, "n": 3, "b": 3}.get(move.promotionChoice.lower(), 0)
+            pawn_value = 1
+            if move.pieceMoved.isupper():
+                self.score -= (promotion_value - pawn_value)
+            else:
+                self.score += (promotion_value - pawn_value)
+
         self.board[move.startRow][move.startCol] = move.pieceMoved
         self.board[move.endRow][move.endCol] = move.pieceCaptured
         self.turn = "white" if self.turn == "black" else "black"
@@ -123,7 +147,7 @@ class ChessEngine:
     def minimax(self, depth, MaximizingPlayer):
         valid_moves = self.validMoves()
         if depth == 0 or not valid_moves:
-            return self.evaluateBoard(self.board), None
+            return self.evaluateBoard(), None
         if MaximizingPlayer:
             max_value = float("-inf")
             best_move = None
@@ -276,7 +300,7 @@ class ChessEngine:
                     self.pieceMoves[piece.upper()](r, c, moves)
         return moves
 
-    #Rules for all possible pawn moves.
+    #Rules for all possible pawn moves, no en passant.
     def getPawnMoves(self, r, c, moves):
         piecePinned = False
         pinDirection = ()
@@ -287,33 +311,65 @@ class ChessEngine:
                 self.pins.remove(self.pins[i])
                 break
 
+        promotion_pieces = ["Q", "R", "N", "B"] if self.turn == "white" else ["q", "r", "n", "b"]
+
+        # White pawn moves
         if self.turn == "white":
             if self.board[r - 1][c] == " " and (not piecePinned or pinDirection == (-1, 0)):
-                moves.append(Move((r, c), (r - 1, c), self.board))
-                if r == 6 and self.board[r - 2][c] == " ":
-                    moves.append(Move((r, c), (r - 2, c), self.board))
+                if r-1==0:
+                    for piece in promotion_pieces:
+                        moves.append(Move((r, c), (r-1, c), self.board, promotionChoice=piece))
+                else:
+                    moves.append(Move((r, c), (r - 1, c), self.board))
+                    if r == 6 and self.board[r - 2][c] == " ":
+                        moves.append(Move((r, c), (r - 2, c), self.board))
+
             if c - 1 >= 0 and self.board[r - 1][c - 1].islower() and (
                 not piecePinned or pinDirection == (-1, -1)
             ):
-                moves.append(Move((r, c), (r - 1, c - 1), self.board))
+                if r - 1 == 0:
+                    for piece in promotion_pieces:
+                        moves.append(Move((r, c), (r-1, c-1), self.board, promotionChoice=piece))
+                else:
+                    moves.append(Move((r, c), (r - 1, c - 1), self.board))
             if c + 1 <= 7 and self.board[r - 1][c + 1].islower() and (
                 not piecePinned or pinDirection == (-1, 1)
             ):
-                moves.append(Move((r, c), (r - 1, c + 1), self.board))
+                if r - 1 == 0:
+                    for piece in promotion_pieces:
+                        moves.append(Move((r, c), (r - 1, c + 1), self.board, promotionChoice=piece))
+                else:
+                    moves.append(Move((r, c), (r - 1, c + 1), self.board))
+
+        # Black pawn moves
         else:
             if self.board[r + 1][c] == " " and (not piecePinned or pinDirection == (1, 0)):
-                moves.append(Move((r, c), (r + 1, c), self.board))
-                if r == 1 and self.board[r + 2][c] == " ":
-                    moves.append(Move((r, c), (r + 2, c), self.board))
+                if r + 1 == 7:
+                    for piece in promotion_pieces:
+                        moves.append(Move((r, c), (r + 1, c), self.board, promotionChoice=piece))
+                else:
+                    moves.append(Move((r, c), (r + 1, c), self.board))
+                    if r == 1 and self.board[r + 2][c] == " ":
+                        moves.append(Move((r, c), (r + 2, c), self.board))
+
             if c - 1 >= 0 and self.board[r + 1][c - 1].isupper() and (
                 not piecePinned or pinDirection == (1, -1)
             ):
-                moves.append(Move((r, c), (r + 1, c - 1), self.board))
+                if r + 1 == 7:
+                    for piece in promotion_pieces:
+                        moves.append(Move((r, c), (r + 1, c - 1), self.board, promotionChoice=piece))
+                else:
+                    moves.append(Move((r, c), (r + 1, c - 1), self.board))
+
             if c + 1 <= 7 and self.board[r + 1][c + 1].isupper() and (
                 not piecePinned or pinDirection == (1, 1)
             ):
-                moves.append(Move((r, c), (r + 1, c + 1), self.board))
-    #No en passant or pawn promotion.
+                if r + 1 == 7:
+                    for piece in promotion_pieces:
+                        moves.append(Move((r, c), (r + 1, c + 1), self.board, promotionChoice=piece))
+                else:
+                    moves.append(Move((r, c), (r + 1, c + 1), self.board))
+
 
     #Rules for all possible rook moves.
     def getRookMoves(self, r, c, moves):
@@ -440,13 +496,14 @@ class Move:
     filesToCols = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
     colsToFiles = {v: k for k, v in filesToCols.items()}
 
-    def __init__(self, startSq, endSq, board):
+    def __init__(self, startSq, endSq, board, promotionChoice=None):
         self.startRow = startSq[0]
         self.startCol = startSq[1]
         self.endRow = endSq[0]
         self.endCol = endSq[1]
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol]
+        self.promotionChoice = promotionChoice
         self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10 + self.endCol
 
     def __eq__(self, other):
@@ -456,7 +513,10 @@ class Move:
 
     #Converting chessboard row and column numbers to chessnotation.
     def getUCI(self):
-        return self.getRankFile(self.startRow, self.startCol) + self.getRankFile(self.endRow, self.endCol)
+        uci = self.getRankFile(self.startRow, self.startCol) + self.getRankFile(self.endRow, self.endCol)
+        if self.promotionChoice:
+            uci += self.promotionChoice.lower()
+        return uci
 
     #Helper function for translating to UCI.
     def getRankFile(self, r, c):
