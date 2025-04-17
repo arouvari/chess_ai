@@ -23,7 +23,8 @@ class ChessEngine:
         #For calculating the current material difference between black and white
         self.score = self.calculateScore()
 
-        #Preferred board position mappings for different pieces eg. pawn is best on the penultimate row since on next move it can promote.
+        #Preferred board position mappings for different pieces eg. pawn is best on the penultimate row since on next move it can promote,
+        # queen is best in the middle since it has more possible moves.
         # Source: https://github.com/amir650/BlackWidow-Chess/blob/master/src/com/chess/engine/classic/Alliance.java
         self.white_pawn_preferred_coordinates = [
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -258,16 +259,11 @@ class ChessEngine:
         self.board = ChessEngine.initialize()
         print("Board reset!")
 
-    #Function that chooses a random move for the AI from the valid moves.
-    @staticmethod
-    def randomMove(validMoves):
-        return random.choice(validMoves) if validMoves else None
-
     def bestMove(self, depth=3):
         _, best_move = self.minimax(depth, self.turn == "white")
         return best_move
 
-    def minimax(self, depth, MaximizingPlayer):
+    def minimax(self, depth, MaximizingPlayer, alpha=float("-inf"), beta=float("inf")):
         valid_moves = self.validMoves()
         if depth == 0 or not valid_moves:
             return self.evaluateBoard(), None
@@ -276,22 +272,28 @@ class ChessEngine:
             best_move = None
             for move in valid_moves:
                 self.makeMove(move)
-                value, _ = self.minimax(depth-1, False)
+                value, _ = self.minimax(depth-1, False, alpha, beta)
                 self.undoMove()
                 if value > max_value:
                     max_value = value
                     best_move = move
+                alpha = max(alpha, max_value)
+                if beta <= alpha:
+                    break
             return max_value, best_move
 
         min_value = float("inf")
         best_move = None
         for move in valid_moves:
             self.makeMove(move)
-            value, _ = self.minimax(depth-1, True)
+            value, _ = self.minimax(depth-1, True, alpha, beta)
             self.undoMove()
             if value < min_value:
                 min_value = value
                 best_move = move
+            beta = min(beta, min_value)
+            if beta <= alpha:
+                break
         return min_value, best_move
 
     def evaluateBoard(self):
