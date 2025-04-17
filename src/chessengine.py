@@ -369,6 +369,7 @@ class ChessEngine:
                         if (moves[i].endRow, moves[i].endCol) not in validSquares:
                             moves.remove(moves[i])
             else:
+                moves = []
                 self.getKingMoves(kingRow, kingCol, moves)
         else:
             moves = self.possibleMoves()
@@ -595,7 +596,8 @@ class ChessEngine:
             if self.pins[i][0] == r and self.pins[i][1] == c:
                 piecePinned = True
                 pinDirection = (self.pins[i][2], self.pins[i][3])
-                self.pins.remove(self.pins[i])
+                if self.board[r][c].upper() != "Q":
+                    self.pins.remove(self.pins[i])
                 break
         directions = ((-1, -1), (-1, 1), (1, -1), (1, 1))
         for d in directions:
