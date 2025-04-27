@@ -187,7 +187,7 @@ class ChessEngine:
 
         return score
 
-    def makeMove(self, move):
+    def makeMove(self, move): # pylint: disable=R0915
         captured_value = 0
         move.whiteCastleKingside = self.whiteCastleKingside
         move.whiteCastleQueenside = self.whiteCastleQueenside
@@ -689,7 +689,7 @@ class ChessEngine:
         self.getBishopMoves(r, c, moves)
 
     #Rules for all possible king moves
-    def getKingMoves(self, r, c, moves):
+    def getKingMoves(self, r, c, moves): # pylint: disable=R0915
         rowMoves = (-1, -1, -1, 0, 0, 1, 1, 1)
         colMoves = (-1, 0, 1, -1, 1, -1, 0, 1)
         for i in range(8):
