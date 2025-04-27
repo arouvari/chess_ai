@@ -22,6 +22,10 @@ class ChessEngine:
         self.checks = []
         #For calculating the current material difference between black and white
         self.score = self.calculateScore()
+        self.whiteCastleKingside = True
+        self.whiteCastleQueenside = True
+        self.blackCastleKingside = True
+        self.blackCastleQueenside = True
 
         #Preferred board position mappings for different pieces eg. pawn is best on the penultimate row since on next move it can promote,
         # queen is best in the middle since it has more possible moves.
@@ -183,29 +187,78 @@ class ChessEngine:
 
         return score
 
-
     def makeMove(self, move):
         captured_value = 0
+        move.whiteCastleKingside = self.whiteCastleKingside
+        move.whiteCastleQueenside = self.whiteCastleQueenside
+        move.blackCastleKingside = self.blackCastleKingside
+        move.blackCastleQueenside = self.blackCastleQueenside
         if move.pieceCaptured != " ":
             captured_value = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0}.get(move.pieceCaptured.lower(), 0)
             self.score += captured_value if self.turn == "white" else -captured_value
+            # Update castling rights if captured piece is a rook
+            if move.pieceCaptured.lower() == 'r':
+                # Determine which rook was captured and update flags
+                if move.pieceCaptured == 'r':  # Black's rook
+                    if (move.endRow, move.endCol) == (0, 0):
+                        self.blackCastleQueenside = False
+                    elif (move.endRow, move.endCol) == (0, 7):
+                        self.blackCastleKingside = False
+                else:  # White's rook
+                    if (move.endRow, move.endCol) == (7, 0):
+                        self.whiteCastleQueenside = False
+                    elif (move.endRow, move.endCol) == (7, 7):
+                        self.whiteCastleKingside = False
+
         if move.promotionChoice:
             promotion_value = {"q": 9, "r": 5, "n": 3, "b": 3}.get(move.promotionChoice.lower(), 0)
             pawn_value = 1
             if self.turn == "white":
-                self.score += (promotion_value-pawn_value)
+                self.score += (promotion_value - pawn_value)
             else:
-                self.score -= (promotion_value-pawn_value)
+                self.score -= (promotion_value - pawn_value)
+
         self.board[move.startRow][move.startCol] = " "
         self.board[move.endRow][move.endCol] = move.promotionChoice if move.promotionChoice else move.pieceMoved
         self.moves.append(move)
         self.turn = "black" if self.turn == "white" else "white"
+
+        if move.isCastle:
+            self.board[move.rookStart[0]][move.rookStart[1]] = " "
+            self.board[move.rookEnd[0]][move.rookEnd[1]] = move.rookMoved
+            if move.pieceMoved == "K":
+                self.whiteCastleKingside = False
+                self.whiteCastleQueenside = False
+            else:
+                self.blackCastleKingside = False
+                self.blackCastleQueenside = False
+
         if move.pieceMoved.upper() == "K":
             if move.pieceMoved.isupper():
                 self.wKingLocation = (move.endRow, move.endCol)
             else:
                 self.bKingLocation = (move.endRow, move.endCol)
+
+        if move.pieceMoved.upper() == "K":
+            if move.pieceMoved == "K":
+                self.whiteCastleKingside = False
+                self.whiteCastleQueenside = False
+            else:
+                self.blackCastleKingside = False
+                self.blackCastleQueenside = False
+        elif move.pieceMoved.upper() == "R":
+            if move.pieceMoved == "R":
+                if (move.startRow, move.startCol) == (7, 0):
+                    self.whiteCastleQueenside = False
+                elif (move.startRow, move.startCol) == (7, 7):
+                    self.whiteCastleKingside = False
+            else:
+                if (move.startRow, move.startCol) == (0, 0):
+                    self.blackCastleQueenside = False
+                elif (move.startRow, move.startCol) == (0, 7):
+                    self.blackCastleKingside = False
         return move.getUCI()
+
 
     #This function get's the move from the engine and translates the UCI notation to the move
     def handleMove(self, move_uci):
@@ -217,7 +270,7 @@ class ChessEngine:
         end_row = Move.ranksToRows[move_uci[3]]
         promotion = None
         if len(move_uci) == 5:
-            if move_uci[4].upper() not in ['Q', 'R', 'N', 'B']:
+            if move_uci[4].upper() not in ["Q", "R", "N", "B"]:
                 raise ValueError(f"Invalid promotion piece: {move_uci[4]}")
             promotion = move_uci[4].upper() if self.turn == "white" else move_uci[4].lower()
         move = Move((start_row, start_col), (end_row, end_col), self.board, promotionChoice=promotion)
@@ -228,6 +281,11 @@ class ChessEngine:
         if not self.moves:
             return
         move = self.moves.pop()
+        self.whiteCastleKingside = move.whiteCastleKingside
+        self.whiteCastleQueenside = move.whiteCastleQueenside
+        self.blackCastleKingside = move.blackCastleKingside
+        self.blackCastleQueenside = move.blackCastleQueenside
+
         if move.pieceCaptured != " ":
             captured_value = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0}.get(move.pieceCaptured.lower(), 0)
             if move.pieceMoved.isupper():
@@ -250,6 +308,11 @@ class ChessEngine:
                 self.wKingLocation = (move.startRow, move.startCol)
             else:
                 self.bKingLocation = (move.startRow, move.startCol)
+
+        if move.isCastle:
+            self.board[move.rookStart[0]][move.rookStart[1]] = move.rookMoved
+            self.board[move.rookEnd[0]][move.rookEnd[1]] = move.rookCaptured
+
 
     @staticmethod
     def setBoard(board_state):
@@ -369,8 +432,7 @@ class ChessEngine:
                         if (moves[i].endRow, moves[i].endCol) not in validSquares:
                             moves.remove(moves[i])
             else:
-                moves = []
-                self.getKingMoves(kingRow, kingCol, moves)
+                moves = [move for move in self.possibleMoves() if move.pieceMoved.upper() == "K"]
         else:
             moves = self.possibleMoves()
         return moves
@@ -387,7 +449,7 @@ class ChessEngine:
 
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1))
         for j, d in enumerate(directions):
-            possiblePin = ()
+            possiblePin = None
             for i in range(1, 8):
                 endRow = startRow + d[0] * i
                 endCol = startCol + d[1] * i
@@ -400,8 +462,9 @@ class ChessEngine:
                     if endPiece != " " and isAlly:
                         if not possiblePin:
                             possiblePin = (endRow, endCol, d[0], d[1])
-                        break
-                    if endPiece != " " and (
+                        else:
+                            break
+                    elif endPiece != " " and (
                         endPiece.islower() and self.turn == "white" or
                         endPiece.isupper() and self.turn == "black"
                     ):
@@ -423,6 +486,8 @@ class ChessEngine:
                                 pins.append(possiblePin)
                             break
                         break
+                else:
+                    break
 
         knightMoves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
         for m in knightMoves:
@@ -437,6 +502,10 @@ class ChessEngine:
                     if endPiece.upper() == "N":
                         check = True
                         checks.append((endRow, endCol, m[0], m[1]))
+                        for i in range(len(self.pins) - 1, -1, -1):
+                            if self.pins[i][0] == endRow and self.pins[i][1] == endCol:
+                                self.pins.pop(i)
+                                break
         return check, pins, checks
 
     #Function for determining if king is in check
@@ -541,8 +610,6 @@ class ChessEngine:
             if self.pins[i][0] == r and self.pins[i][1] == c:
                 piecePinned = True
                 pinDirection = (self.pins[i][2], self.pins[i][3])
-                if self.board[r][c].upper() != "Q":
-                    self.pins.remove(self.pins[i])
                 break
 
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1))
@@ -572,7 +639,6 @@ class ChessEngine:
         for i in range(len(self.pins) - 1, -1, -1):
             if self.pins[i][0] == r and self.pins[i][1] == c:
                 piecePinned = True
-                self.pins.remove(self.pins[i])
                 break
 
         knightMoves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
@@ -596,8 +662,6 @@ class ChessEngine:
             if self.pins[i][0] == r and self.pins[i][1] == c:
                 piecePinned = True
                 pinDirection = (self.pins[i][2], self.pins[i][3])
-                if self.board[r][c].upper() != "Q":
-                    self.pins.remove(self.pins[i])
                 break
         directions = ((-1, -1), (-1, 1), (1, -1), (1, 1))
         for d in directions:
@@ -651,6 +715,50 @@ class ChessEngine:
                         self.wKingLocation = originalKingLoc
                     else:
                         self.bKingLocation = originalKingLoc
+        if self.turn == "white" and not self.check:
+            if self.whiteCastleKingside and self.board[7][7] == "R":
+                if self.board[7][5] == " " and self.board[7][6] == " ":
+                    if not self.underAttack(7, 4) and not self.underAttack(7, 5) and not self.underAttack(7, 6):
+                        move = Move((7, 4), (7, 6), self.board)
+                        move.isCastle = True
+                        move.rookStart = (7, 7)
+                        move.rookEnd = (7, 5)
+                        move.rookMoved = "R"
+                        move.rookCaptured = " "
+                        moves.append(move)
+            if self.whiteCastleQueenside and self.board[7][0] == "R":
+                if self.board[7][1] == " " and self.board[7][2] == " " and self.board[7][3] == " ":
+                    if not self.underAttack(7, 4) and not self.underAttack(7, 3) and not self.underAttack(7, 2):
+                        move = Move((7, 4), (7, 2), self.board)
+                        move.isCastle = True
+                        move.rookStart = (7, 0)
+                        move.rookEnd = (7, 3)
+                        move.rookMoved = "R"
+                        move.rookCaptured = " "
+                        moves.append(move)
+
+        elif self.turn == "black" and not self.check:
+            if self.blackCastleKingside and self.board[0][7] == "r":
+                if self.board[0][5] == " " and self.board[0][6] == " ":
+                    if not self.underAttack(0, 4) and not self.underAttack(0, 5) and not self.underAttack(0, 6):
+                        move = Move((0, 4), (0, 6), self.board)
+                        move.isCastle = True
+                        move.rookStart = (0, 7)
+                        move.rookEnd = (0, 5)
+                        move.rookMoved = "r"
+                        move.rookCaptured = " "
+                        moves.append(move)
+            if self.blackCastleQueenside and self.board[0][0] == "r":
+                if self.board[0][1] == " " and self.board[0][2] == " " and self.board[0][3] == " ":
+                    if not self.underAttack(0, 4) and not self.underAttack(0, 3) and not self.underAttack(0, 2):
+                        move = Move((0, 4), (0, 2), self.board)
+                        move.isCastle = True
+                        move.rookStart = (0, 0)
+                        move.rookEnd = (0, 3)
+                        move.rookMoved = "r"
+                        move.rookCaptured = " "
+                        moves.append(move)
+
 
 class Move:
     #Mapping list values to chessboard row names
@@ -667,7 +775,23 @@ class Move:
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol]
         self.promotionChoice = promotionChoice
+        self.isCastle = False
+        self.rookStart = None
+        self.rookEnd = None
+        self.rookMoved = None
+        self.rookCaptured = None
         self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10 + self.endCol
+
+        if self.pieceMoved.upper() == "K" and abs(self.startCol - self.endCol) == 2:
+            self.isCastle = True
+            if self.endCol > self.startCol:
+                self.rookStart = (self.startRow, 7)
+                self.rookEnd = (self.startRow, self.endCol - 1)
+            else:
+                self.rookStart = (self.startRow, 0)
+                self.rookEnd = (self.startRow, self.endCol + 1)
+            self.rookMoved = board[self.rookStart[0]][self.rookStart[1]]
+            self.rookCaptured = board[self.rookEnd[0]][self.rookEnd[1]]
 
     def __eq__(self, other):
         if isinstance(other, Move):
