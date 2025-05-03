@@ -404,6 +404,7 @@ class ChessEngine:
         else:
             raise ValueError(f"Invalid active color: {active_color}")
 
+
         if castling == '-':
             self.whiteCastleKingside = False
             self.whiteCastleQueenside = False
@@ -575,7 +576,7 @@ class ChessEngine:
             moves = self.possibleMoves()
         return moves
 
-
+    #Finds all possible pins and checks based on the locations of the pieces.
     def pinsAndChecks(self):
         """
         Identifies all pinned pieces and checks made against the current player's king.
@@ -607,9 +608,6 @@ class ChessEngine:
                         endPiece.islower() and self.turn == "black" and endPiece != "k"
                     )
                     if endPiece != " " and isAlly:
-                        pieceType = endPiece.upper()
-                        if pieceType == "N":
-                            break
                         if not possiblePin:
                             possiblePin = (endRow, endCol, d[0], d[1])
                         else:
@@ -672,59 +670,19 @@ class ChessEngine:
 
     def underAttack(self, r, c):
         """
-        Determines if a square (r, c) is under attack by any of the opponent's pieces.
+        Determines if a square is under attack by the opponent.
+
+        Args:
+            r (int): Row of the square.
+            c (int): Column of the square.
+
+        Returns:
+            bool: Is True if the square is attacked.
         """
-        enemy_color = "black" if self.turn == "white" else "white"
-
-        pawn_dir = -1 if enemy_color == "white" else 1
-        attack_squares = [(r + pawn_dir, c - 1), (r + pawn_dir, c + 1)]
-        for ar, ac in attack_squares:
-            if 0 <= ar < 8 and 0 <= ac < 8:
-                piece = self.board[ar][ac]
-                if piece.lower() == 'p' and (piece.islower() == (enemy_color == "black")):
-                    return True
-
-        knight_moves = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
-        for dr, dc in knight_moves:
-            ar, ac = r + dr, c + dc
-            if 0 <= ar < 8 and 0 <= ac < 8:
-                piece = self.board[ar][ac]
-                if piece.lower() == 'n' and (piece.islower() == (enemy_color == "black")):
-                    return True
-
-        king_moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-        for dr, dc in king_moves:
-            ar, ac = r + dr, c + dc
-            if 0 <= ar < 8 and 0 <= ac < 8:
-                piece = self.board[ar][ac]
-                if piece.lower() == 'k' and (piece.islower() == (enemy_color == "black")):
-                    return True
-
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1),
-                    (-1, -1), (-1, 1), (1, -1), (1, 1)]
-        for d in directions:
-            dr, dc = d
-            for step in range(1, 8):
-                ar = r + dr * step
-                ac = c + dc * step
-                if not (0 <= ar < 8 and 0 <= ac < 8):
-                    break
-                piece = self.board[ar][ac]
-                if piece == ' ':
-                    continue
-                if (piece.islower() == (enemy_color == "black")):
-                    piece_type = piece.lower()
-                    if step == 1 and piece_type == 'k':
-                        return True
-                    if piece_type == 'q':
-                        return True
-                    if (d in [(-1, 0), (1, 0), (0, -1), (0, 1)] and piece_type == 'r'):
-                        return True
-                    if (d in [(-1, -1), (-1, 1), (1, -1), (1, 1)] and piece_type == 'b'):
-                        return True
-                break
-
-        return False
+        self.turn = "black" if self.turn == "white" else "white"
+        enemyMoves = self.validMoves()
+        self.turn = "black" if self.turn == "white" else "white"
+        return any(move.endRow == r and move.endCol == c for move in enemyMoves)
 
     def possibleMoves(self):
         """
