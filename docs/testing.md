@@ -1,26 +1,47 @@
-Testing Document
+# Testing Document
 
-[COVERAGE REPORT](https://arouvari.github.io/chess_ai/htmlcov/index.html)
+## Unit Testing Coverage
 
-What was tested and how:
-    All tests are currently done by pytest testing important functions.
-    Chessboard starting position is tested with checking that all pieces are in
-    correct places, there are no kings in check, king starting locations are
-    mapped correctly and starting turn is for white. Move making and
-    move handling functions are tested. There is a test for the
-    correct chess notation(UCI) generation. One position is tested for
-    checking if king is in check. Testing for the evaluation function is
-    provided.
+### Core Components Tested
+- **Board Initialization**: Verified starting positions, king locations, and castling rights.
+- **Move Execution**: Pawn moves, captures, promotions, castling, and undo functionality.
+- **Game State Checks**: Check detection, checkmate, stalemate, and valid move generation.
+- **AI Logic**: Minimax algorithm, board evaluation (material/positional scores).
+- **Special Moves**: Castling, pawn promotion, pinned pieces.
 
-What types of inputs were used for testing:
-    Move generation tests use simple legal starting moves as test inputs.
-    Also the UCI generation is done with a simple move.
-    King checking function is tested with setting the pieces to a clear
-    checking position for black and using isInCheck to check that it
-    works correctly. Valid starting moves for white are validated by
-    checking that there are exactly 20 possible moves. Evaluation function is
-    tested using the starting, checkmate and stalemate positions.
+## Tested Scenarios & Methods
 
-How can the tests be reproduced:
-    1. Go to the root directory in the terminal
-    2. Paste command: poetry run pytest
+### 1. Board Setup & Basics
+- `test_board_initialize`: Validates starting board configuration.
+- `test_start_king_locations`: Confirms kings start at (7,4) and (0,4).
+
+### 2. Move Execution
+- `test_make_move`: Pawn advances (`a2a4`), updates board state, and switches turn.
+- `test_capture`: Pawn captures opponent, updates score (material difference).
+- `test_castling_kingside`: King and rook move, castling rights revoked.
+
+### 3. Check & Endgame Logic
+- `test_check_detection`: Detects queen attacking king.
+- `test_checkmate_evaluation`: Returns `9999` for checkmate (black to move).
+- `test_stalemate_evaluation`: Returns `0` for stalemate.
+
+### 4. Special Moves
+- `test_pawn_promotion`: Promotes pawn to queen, updates score (+8 for white).
+- `test_undo_promotion`: Reverts promotion, restores original board state.
+
+### 5. AI Decision-Making
+- `test_make_best_move`: AI prioritizes capturing a queen with a pawn.
+
+---
+
+## Input Types
+- **Valid UCI Moves**: `e2e4`, `a7a8q` (promotion), `e1g1` (castling).
+- **Board Configurations**: Checkmate/stalemate setups, pinned pieces.
+- **Edge Cases**: Pawns at promotion squares, kings in castling positions.
+
+---
+
+## Reproduction Steps
+1. **Install Dependencies**:
+   ```bash
+   poetry run pytest
