@@ -231,8 +231,8 @@ class ChessEngine: # pylint: disable=C0302
         if move.pieceCaptured != " ":
             captured_value = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0}.get(move.pieceCaptured.lower(), 0)
             self.score += captured_value if self.turn == "white" else -captured_value
-            if move.pieceCaptured.lower() == 'r':
-                if move.pieceCaptured == 'r':
+            if move.pieceCaptured.lower() == "r":
+                if move.pieceCaptured.lower():
                     if (move.endRow, move.endCol) == (0, 0):
                         self.blackCastleQueenside = False
                     elif (move.endRow, move.endCol) == (0, 7):
@@ -356,6 +356,10 @@ class ChessEngine: # pylint: disable=C0302
         if move.isCastle:
             self.board[move.rookStart[0]][move.rookStart[1]] = move.rookMoved
             self.board[move.rookEnd[0]][move.rookEnd[1]] = move.rookCaptured
+            if move.pieceMoved.isupper():
+                self.wKingLocation = (move.startRow, move.startCol)
+            else:
+                self.bKingLocation = (move.startRow, move.startCol)
 
 
 
@@ -671,6 +675,7 @@ class ChessEngine: # pylint: disable=C0302
     def underAttack(self, r, c):
         """
         Determines if a square is under attack by the opponent.
+        Uses pseudo-legal moves without king castling checks to avoid recursion.
 
         Args:
             r (int): Row of the square.
@@ -679,9 +684,10 @@ class ChessEngine: # pylint: disable=C0302
         Returns:
             bool: Is True if the square is attacked.
         """
-        self.turn = "black" if self.turn == "white" else "white"
-        enemyMoves = self.validMoves()
-        self.turn = "black" if self.turn == "white" else "white"
+        current_turn = self.turn
+        self.turn = "black" if current_turn == "white" else "white"
+        enemyMoves = self.allPseudoLegalMoves()
+        self.turn = current_turn
         return any(move.endRow == r and move.endCol == c for move in enemyMoves)
 
     def possibleMoves(self):
@@ -700,6 +706,41 @@ class ChessEngine: # pylint: disable=C0302
                     self.pieceMoves[piece.upper()](r, c, moves)
         return moves
 
+    def allPseudoLegalMoves(self):
+        """
+        Generate all pseudo-legal moves for the current player,
+        but for king moves, *do not* check castling or call underAttack().
+        This is used for checking squares under attack to avoid recursion.
+        """
+        moves = []
+        for r, row in enumerate(self.board):
+            for c, piece in enumerate(row):
+                if self.turn == "white" and piece.isupper():
+                    if piece.upper() == 'K':
+                        # King moves without castling and without underAttack checks
+                        self.getKingPseudoMovesNoCheck(r, c, moves)
+                    else:
+                        self.pieceMoves[piece.upper()](r, c, moves)
+                elif self.turn == "black" and piece.islower():
+                    if piece.upper() == 'K':
+                        self.getKingPseudoMovesNoCheck(r, c, moves)
+                    else:
+                        self.pieceMoves[piece.upper()](r, c, moves)
+        return moves
+
+    def getKingPseudoMovesNoCheck(self, r, c, moves):
+        """
+        Generate king moves for underAttack without castling and without recursive underAttack calls.
+        """
+        rowMoves = (-1, -1, -1, 0, 0, 1, 1, 1)
+        colMoves = (-1, 0, 1, -1, 1, -1, 0, 1)
+        for i in range(8):
+            endRow = r + rowMoves[i]
+            endCol = c + colMoves[i]
+            if 0 <= endRow < 8 and 0 <= endCol < 8:
+                endPiece = self.board[endRow][endCol]
+                if endPiece == " " or (self.turn == "white" and endPiece.islower()) or (self.turn == "black" and endPiece.isupper()):
+                    moves.append(Move((r, c), (endRow, endCol), self.board))
 
     def getPawnMoves(self, r, c, moves):
         """
