@@ -75,6 +75,7 @@ def test_check_detection(engine):
     print(engine.board)
     assert engine.isInCheck()
 
+#Test that checks that checkmate is evaluated correctly
 def test_checkmate_evaluation(engine):
     test_board = [
             [" ", " ", " ", " ", " ", " ", " ", "k"],
@@ -92,6 +93,7 @@ def test_checkmate_evaluation(engine):
     engine.wKingLocation = (7, 4)
     assert engine.evaluateBoard() == 9999
 
+#Testing correct stalemate evaluation
 def test_stalemate_evaluation(engine):
     test_board = [
             [" ", " ", " ", " ", "k", " ", " ", " "],
@@ -105,3 +107,156 @@ def test_stalemate_evaluation(engine):
         ]
     engine.board = test_board
     assert engine.evaluateBoard() == 0
+
+#Testing that captures work correctly using a pawn capture, seeing if score is updated.
+def test_capture(engine):
+    engine.board[4][4] = "P"
+    engine.board[3][4] = "p"
+    move = Move((4, 4), (3, 4), engine.board)
+    uci = engine.makeMove(move)
+    assert uci == "e4e5"
+    assert engine.board[4][4] == " "
+    assert engine.board[3][4] == "P"
+    assert engine.score == 1
+    assert engine.turn == "black"
+
+#Testing that pawn promotion to a queen works.
+def test_pawn_promotion(engine):
+    engine.board[1][0] = "P"
+    engine.board[0][0] = " "
+    move = Move((1, 0), (0, 0), engine.board, promotionChoice="Q")
+    uci = engine.makeMove(move)
+    assert uci == "a7a8q"
+    assert engine.board[1][0] == " "
+    assert engine.board[0][0] == "Q"
+    assert engine.score == 8
+    assert engine.turn == "black"
+
+#Test for castling. Checking that king and rook move to correct squares and castling rights are updated.
+def test_castling_kingside(engine):
+    engine.board[7][5] = " "
+    engine.board[7][6] = " "
+    move = Move((7, 4), (7, 6), engine.board)
+    move.isCastle = True
+    move.rookStart = (7, 7)
+    move.rookEnd = (7, 5)
+    move.rookMoved = "R"
+    move.rookCaptured = " "
+    uci = engine.makeMove(move)
+    assert uci == "e1g1"
+    assert engine.board[7][4] == " "
+    assert engine.board[7][6] == "K"
+    assert engine.board[7][7] == " "
+    assert engine.board[7][5] == "R"
+    assert engine.wKingLocation == (7, 6)
+    assert not engine.whiteCastleKingside
+    assert not engine.whiteCastleQueenside
+
+#Testing that undo button works by capturing and undoing.
+def test_undo_capture(engine):
+    engine.board[4][4] = "P"
+    engine.board[3][4] = "p"
+    move = Move((4, 4), (3, 4), engine.board)
+    engine.makeMove(move)
+    engine.undoMove()
+    assert engine.board[4][4] == "P"
+    assert engine.board[3][4] == "p"
+    assert engine.score == 0
+    assert engine.turn == "white"
+
+#Testing undo correctness after promoting a pawn.
+def test_undo_promotion(engine):
+    engine.board[1][0] = "P"
+    engine.board[0][0] = " "
+    move = Move((1, 0), (0, 0), engine.board, promotionChoice="Q")
+    engine.makeMove(move)
+    engine.undoMove()
+    assert engine.board[1][0] == "P"
+    assert engine.board[0][0] == " "
+    assert engine.score == 0
+    assert engine.turn == "white"
+
+#Testing that all moves while king is in check are correct.
+def test_valid_moves_in_check(engine):
+    engine.board = [
+        ["r", " ", " ", " ", "k", " ", " ", " "],
+        ["p", "p", "p", "p", " ", "p", "p", "p"],
+        [" ", " ", " ", " ", " ", " ", " ", " "],
+        [" ", " ", " ", " ", " ", " ", " ", " "],
+        [" ", " ", " ", " ", "Q", " ", " ", " "],
+        [" ", " ", " ", " ", " ", " ", " ", " "],
+        ["P", "P", "P", "P", "P", "P", "P", "P"],
+        ["R", "N", "B", " ", "K", "B", "N", "R"]
+    ]
+    engine.wKingLocation = (7, 4)
+    engine.bKingLocation = (0, 4)
+    engine.turn = "black"
+    moves = engine.validMoves()
+    assert len(moves) == 2
+    uci_moves = [move.getUCI() for move in moves]
+    assert set(uci_moves) == {"e8d8", "e8f8"}
+
+#Testing all possible moves for a pawn.
+def test_possible_pawn_moves(engine):
+    engine.board[6][4] = "P"
+    engine.board[5][4] = " "
+    engine.board[4][4] = " "
+    engine.board[5][5] = "p"
+    moves = []
+    engine.getPawnMoves(6, 4, moves)
+    uci_moves = [move.getUCI() for move in moves]
+    assert set(uci_moves) == {"e2e3", "e2e4", "e2f3"}
+
+#Testing that checking with a knight works correctly.
+def test_is_in_check_knight(engine):
+    engine.board[7][4] = " "
+    engine.board[5][5] = "K"
+    engine.board[0][4] = " "
+    engine.board[3][4] = "k"
+    engine.board[4][3] = "n"
+    engine.wKingLocation = (5, 5)
+    engine.bKingLocation = (3, 4)
+    assert engine.isInCheck()
+
+#Testing pins_and_checks function correction.
+def test_pins_and_checks(engine):
+    engine.board = [
+        [" ", " ", " ", " ", "k", " ", " ", " "],
+        [" ", " ", " ", " ", " ", " ", " ", " "],
+        [" ", " ", " ", " ", " ", " ", " ", " "],
+        [" ", " ", " ", " ", " ", " ", " ", " "],
+        [" ", "b", " ", " ", " ", " ", " ", " "],
+        [" ", " ", "P", " ", " ", " ", " ", " "],
+        [" ", " ", " ", " ", " ", " ", " ", " "],
+        [" ", " ", " ", " ", "K", " ", " ", " "]
+    ]
+    engine.wKingLocation = (7, 4)
+    engine.bKingLocation = (0, 4)
+    check, pins, checks = engine.pinsAndChecks()
+    assert not check
+    assert len(pins) == 1
+    assert len(checks) == 0
+
+#Testing board evaluation based on material.
+def test_evaluate_board_material(engine):
+    engine.board[6][0] = " "
+    score = engine.calculateScore()
+    assert score == -1
+
+#Testing that the UCI notation for promition of a pawn to a queen works.
+def test_handle_move_promotion(engine):
+    engine.board[1][0] = "P"
+    engine.board[0][0] = " "
+    engine.handleMove("a7a8q")
+    assert engine.board[1][0] == " "
+    assert engine.board[0][0] == "Q"
+    assert engine.turn == "black"
+
+#Testing that the best move is chosen by the AI, eg. pawn takes the queen.
+def test_make_best_move(engine):
+    engine.board[4][4] = "P"
+    engine.board[3][5] = "q"
+    move = engine.bestMove(depth=2)
+    assert move in engine.validMoves()
+    engine.makeMove(move)
+    assert engine.board[3][5] == "P"
