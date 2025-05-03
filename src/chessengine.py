@@ -2,9 +2,21 @@ import time
 import random
 
 class ChessEngine:
+    """
+    A chess engine that manages the game state, evaluates positions, and computes moves using a minimax algorithm with alpha-beta pruning.
+    The engine represents the chessboard as an 8x8 grid, with pieces denoted by letters, uppercase for white and lowercase for black.
+    It supports move generation, validation, castling, pawn promotion, and basic AI move selection.
+    No en passant implementation is in the code.
+    """
     def __init__(self):
+        """
+        This function initializes the starting state of the game by setting the starting position, king locations, castling rights,
+        initializing moves, pins and checks lists.
+        """
         self.board = ChessEngine.initialize()
+        #Tracks all moves made during a game for the undo function.
         self.moves = []
+        #Current player turn, set as white for the start.
         self.turn = "white"
         #Using right get moves function depending on piece.
         self.pieceMoves = {
@@ -18,10 +30,13 @@ class ChessEngine:
         self.checkmate = False
         self.stalemate = False
         self.check = False
+        #List of current pins
         self.pins = []
+        #List of current checks
         self.checks = []
         #For calculating the current material difference between black and white
         self.score = self.calculateScore()
+        #All castling rights are set True at the start.
         self.whiteCastleKingside = True
         self.whiteCastleQueenside = True
         self.blackCastleKingside = True
@@ -151,11 +166,14 @@ class ChessEngine:
             -0.5,-0.3,-0.3,-0.3,-0.3,-0.3,-0.3,-0.5
         ]
 
-    #This function initializes the chessboard as 8x8 mailbox with each letter representing a piece,
-    #white pieces are in uppercase and black pieces in lower case.
-    #Empty squares are represented as a space.
+
     @staticmethod
     def initialize():
+        """
+        This function initializes the chessboard as 8x8 mailbox with each letter representing a piece,
+        white pieces are in uppercase and black pieces in lower case.
+        Empty squares are represented as a space.
+        """
         return [
             ["r", "n", "b", "q", "k", "b", "n", "r"],
             ["p", "p", "p", "p", "p", "p", "p", "p"],
@@ -167,6 +185,13 @@ class ChessEngine:
             ["R", "N", "B", "Q", "K", "B", "N", "R"]
         ]
     def calculateScore(self):
+        """
+        Calculates the score by material. Assigning a value for each piece and adding them to get current
+        evaluation of material.
+
+        Returns:
+            int: positive values represent an advantage for white in material and negative values an advantage for black.
+        """
         piece_values = {
             "P":1, "p":1,
             "N":3, "n":3,
@@ -188,6 +213,16 @@ class ChessEngine:
         return score
 
     def makeMove(self, move): # pylint: disable=R0915
+        """
+        Executes a move, updates the game state including castling rights and material score based on the
+        move received.
+
+        Args:
+            move (Move): The move to execute, containing start/end positions, piece moved, and optional promotion.
+
+        Returns:
+            str: The move in UCI notation (e.g., 'e2e4').
+        """
         captured_value = 0
         move.whiteCastleKingside = self.whiteCastleKingside
         move.whiteCastleQueenside = self.whiteCastleQueenside
@@ -196,15 +231,13 @@ class ChessEngine:
         if move.pieceCaptured != " ":
             captured_value = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 0}.get(move.pieceCaptured.lower(), 0)
             self.score += captured_value if self.turn == "white" else -captured_value
-            # Update castling rights if captured piece is a rook
             if move.pieceCaptured.lower() == 'r':
-                # Determine which rook was captured and update flags
-                if move.pieceCaptured == 'r':  # Black's rook
+                if move.pieceCaptured == 'r':
                     if (move.endRow, move.endCol) == (0, 0):
                         self.blackCastleQueenside = False
                     elif (move.endRow, move.endCol) == (0, 7):
                         self.blackCastleKingside = False
-                else:  # White's rook
+                else:
                     if (move.endRow, move.endCol) == (7, 0):
                         self.whiteCastleQueenside = False
                     elif (move.endRow, move.endCol) == (7, 7):
@@ -260,8 +293,16 @@ class ChessEngine:
         return move.getUCI()
 
 
-    #This function get's the move from the engine and translates the UCI notation to the move
     def handleMove(self, move_uci):
+        """
+        Handles a move it gets in UCI notation and makes changes to the board.
+
+        Args:
+            move_uci (str): The move in UCI notation.
+
+        Raises:
+            ValueError: If the UCI received is invalid.
+        """
         if len(move_uci) not in (4, 5):
             raise ValueError(f"Invalid UCI move: {move_uci}")
         start_col = Move.filesToCols[move_uci[0]]
@@ -278,6 +319,9 @@ class ChessEngine:
         print(f"Received move: {move}")
 
     def undoMove(self):
+        """
+        Undos the last made move, reverses the made changes in the board and game state.
+        """
         if not self.moves:
             return
         move = self.moves.pop()
@@ -314,23 +358,106 @@ class ChessEngine:
             self.board[move.rookEnd[0]][move.rookEnd[1]] = move.rookCaptured
 
 
-    @staticmethod
-    def setBoard(board_state):
-        print(f"Set board to: {board_state}")
+
+    def setBoard(self, fen):
+        """
+        Sets the board position based on the provided FEN string.
+
+        Args:
+            fen_str (str): The FEN string representing the board position.
+        """
+        fen_fields = fen.split()
+        piece_placement = fen_fields[0]
+        active_color = fen_fields[1]
+        castling = fen_fields[2]
+
+
+        ranks = piece_placement.split('/')
+
+        self.board = []
+        for rank in range(8):
+            row = []
+            rank_str = ranks[rank]
+            col = 0
+            for char in rank_str:
+                if char.isalpha():
+                    row.append(char)
+                    if char == 'K':
+                        self.wKingLocation = (rank, col)
+                    elif char == 'k':
+                        self.bKingLocation = (rank, col)
+                    col += 1
+                elif char.isdigit():
+                    num = int(char)
+                    row.extend([' '] * num)
+                    col += num
+                else:
+                    raise ValueError(f"Invalid character in FEN: {char}")
+            if col != 8:
+                raise ValueError(f"Invalid FEN: rank {rank} does not have 8 squares")
+            self.board.append(row)
+
+        if active_color == 'w':
+            self.turn = 'white'
+        elif active_color == 'b':
+            self.turn = 'black'
+        else:
+            raise ValueError(f"Invalid active color: {active_color}")
+
+        if castling == '-':
+            self.whiteCastleKingside = False
+            self.whiteCastleQueenside = False
+            self.blackCastleKingside = False
+            self.blackCastleQueenside = False
+        else:
+            self.whiteCastleKingside = 'K' in castling
+            self.whiteCastleQueenside = 'Q' in castling
+            self.blackCastleKingside = 'k' in castling
+            self.blackCastleQueenside = 'q' in castling
+
+        self.score = self.calculateScore()
+
+        self.moves = []
+
+        print(f"Set board to FEN: {fen}")
 
     def resetBoard(self):
+        """
+        Resets board to the starting position.
+        """
         self.board = ChessEngine.initialize()
         print("Board reset!")
 
     def bestMove(self, depth=3):
+        """
+        Calculates best move for the AI using minimax algorithm in depth of 3.
+
+        Args:
+            depth (int): The search depth for the minimax algorithm.
+
+        Returns:
+            Move: The best move or None if no valid moves exist.
+        """
         _, best_move = self.minimax(depth, self.turn == "white")
         return best_move
 
-    def minimax(self, depth, MaximizingPlayer, alpha=float("-inf"), beta=float("inf")):
+    def minimax(self, depth, maximizingPlayer, alpha=float("-inf"), beta=float("inf")):
+        """
+        Implements the minimax algorithm with alpha-beta pruning to evaluate moves.
+
+        Args:
+            depth (int): The depth the algorithm searches.
+            maximizingPlayer (bool): True if maximizing (White), False if minimizing (Black).
+            alpha (float): Best score for the maximizer along the current path.
+            beta (float): Best score for the minimizer along the current path.
+
+        Returns:
+            tuple: (best_score, best_move).
+        """
         valid_moves = self.validMoves()
         if depth == 0 or not valid_moves:
             return self.evaluateBoard(), None
-        if MaximizingPlayer:
+        if maximizingPlayer:
             max_value = float("-inf")
             best_move = None
             for move in valid_moves:
@@ -360,6 +487,12 @@ class ChessEngine:
         return min_value, best_move
 
     def evaluateBoard(self):
+        """
+        Evaluates the board position based on material difference and position of the pieces.
+
+        Returns:
+            float: Positive scores are advantage for white, negative are advantage for Black.
+        """
         valid_moves = self.validMoves()
         if not valid_moves:
             if self.isInCheck():
@@ -406,8 +539,13 @@ class ChessEngine:
         return total_score if self.turn == "white" else -total_score
 
 
-    #Checking for checkmate, stalemate and removing own moves that put you in check
     def validMoves(self):
+        """
+        Generates all legal moves for the current player, accounting for checks and pins.
+
+        Returns:
+            list: A list of valid moves that are allowed by the rules.
+        """
         moves = []
         self.check, self.pins, self.checks = self.pinsAndChecks()
         kingRow, kingCol = self.wKingLocation if self.turn == "white" else self.bKingLocation
@@ -437,8 +575,17 @@ class ChessEngine:
             moves = self.possibleMoves()
         return moves
 
-    #Finds all possible pins and checks based on the locations of the pieces.
+
     def pinsAndChecks(self):
+        """
+        Identifies all pinned pieces and checks made against the current player's king.
+
+        Returns:
+            tuple: (is_in_check, pins, checks), where:
+                is_in_check (bool): Is True if the king is in check.
+                pins (list): List of all pinned pieces (row, col, direction).
+                checks (list): List of all checking pieces (row, col, direction).
+        """
         pins, checks = [], []
         check = False
         enemy, startRow, startCol = (
@@ -460,6 +607,9 @@ class ChessEngine:
                         endPiece.islower() and self.turn == "black" and endPiece != "k"
                     )
                     if endPiece != " " and isAlly:
+                        pieceType = endPiece.upper()
+                        if pieceType == "N":
+                            break
                         if not possiblePin:
                             possiblePin = (endRow, endCol, d[0], d[1])
                         else:
@@ -508,20 +658,81 @@ class ChessEngine:
                                 break
         return check, pins, checks
 
-    #Function for determining if king is in check
+
     def isInCheck(self):
+        """
+        Determines if the current player's king is in check.
+
+        Returns:
+            bool: Is True if the king is under attack.
+        """
         r, c = self.wKingLocation if self.turn == "white" else self.bKingLocation
         return self.underAttack(r, c)
 
-    #Helper function for check detection
-    def underAttack(self, r, c):
-        self.turn = "black" if self.turn == "white" else "white"
-        enemyMoves = self.validMoves()
-        self.turn = "black" if self.turn == "white" else "white"
-        return any(move.endRow == r and move.endCol == c for move in enemyMoves)
 
-    #Finding all possible moves for white and black.
+    def underAttack(self, r, c):
+        """
+        Determines if a square (r, c) is under attack by any of the opponent's pieces.
+        """
+        enemy_color = "black" if self.turn == "white" else "white"
+
+        pawn_dir = -1 if enemy_color == "white" else 1
+        attack_squares = [(r + pawn_dir, c - 1), (r + pawn_dir, c + 1)]
+        for ar, ac in attack_squares:
+            if 0 <= ar < 8 and 0 <= ac < 8:
+                piece = self.board[ar][ac]
+                if piece.lower() == 'p' and (piece.islower() == (enemy_color == "black")):
+                    return True
+
+        knight_moves = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
+        for dr, dc in knight_moves:
+            ar, ac = r + dr, c + dc
+            if 0 <= ar < 8 and 0 <= ac < 8:
+                piece = self.board[ar][ac]
+                if piece.lower() == 'n' and (piece.islower() == (enemy_color == "black")):
+                    return True
+
+        king_moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        for dr, dc in king_moves:
+            ar, ac = r + dr, c + dc
+            if 0 <= ar < 8 and 0 <= ac < 8:
+                piece = self.board[ar][ac]
+                if piece.lower() == 'k' and (piece.islower() == (enemy_color == "black")):
+                    return True
+
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1),
+                    (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        for d in directions:
+            dr, dc = d
+            for step in range(1, 8):
+                ar = r + dr * step
+                ac = c + dc * step
+                if not (0 <= ar < 8 and 0 <= ac < 8):
+                    break
+                piece = self.board[ar][ac]
+                if piece == ' ':
+                    continue
+                if (piece.islower() == (enemy_color == "black")):
+                    piece_type = piece.lower()
+                    if step == 1 and piece_type == 'k':
+                        return True
+                    if piece_type == 'q':
+                        return True
+                    if (d in [(-1, 0), (1, 0), (0, -1), (0, 1)] and piece_type == 'r'):
+                        return True
+                    if (d in [(-1, -1), (-1, 1), (1, -1), (1, 1)] and piece_type == 'b'):
+                        return True
+                break
+
+        return False
+
     def possibleMoves(self):
+        """
+        Generates all possible moves for the current player, ignoring checks.
+
+        Returns:
+            list: A list of possible moves.
+        """
         moves = []
         for r, row in enumerate(self.board):
             for c, piece in enumerate(row):
@@ -531,8 +742,16 @@ class ChessEngine:
                     self.pieceMoves[piece.upper()](r, c, moves)
         return moves
 
-    #Rules for all possible pawn moves, no en passant.
+
     def getPawnMoves(self, r, c, moves):
+        """
+        Generates all possible pawn moves, including promotions but not en passant.
+
+        Args:
+            r (int): Row of the pawn.
+            c (int): Column of the pawn.
+            moves (list): List to append valid moves for a pawn.
+        """
         piecePinned = False
         pinDirection = ()
         for i in range(len(self.pins) - 1, -1, -1):
@@ -602,8 +821,15 @@ class ChessEngine:
                     moves.append(Move((r, c), (r + 1, c + 1), self.board))
 
 
-    #Rules for all possible rook moves.
     def getRookMoves(self, r, c, moves):
+        """
+        Generates all possible rook moves.
+
+        Args:
+            r (int): Row of the rook.
+            c (int): Column of the rook.
+            moves (list): List to append valid rook moves.
+        """
         piecePinned = False
         pinDirection = ()
         for i in range(len(self.pins) - 1, -1, -1):
@@ -631,10 +857,16 @@ class ChessEngine:
                             break
                 else:
                     break
-    #No castling possibility as of yet.
 
-    #Rules for all possible knight moves.
     def getKnightMoves(self, r, c, moves):
+        """
+        Generates all possible knight moves.
+
+        Args:
+            r (int): Row of the knight.
+            c (int): Column of the knight.
+            moves (list): List to append valid knight moves.
+        """
         piecePinned = False
         for i in range(len(self.pins) - 1, -1, -1):
             if self.pins[i][0] == r and self.pins[i][1] == c:
@@ -654,8 +886,16 @@ class ChessEngine:
                 ):
                     moves.append(Move((r, c), (endRow, endCol), self.board))
 
-    #Rules for all possible bishop moves
+
     def getBishopMoves(self, r, c, moves):
+        """
+        Generates all possible bishop moves.
+
+        Args:
+            r (int): Row of the bishop.
+            c (int): Column of the bishop.
+            moves (list): List to append valid bishop moves.
+        """
         piecePinned = False
         pinDirection = ()
         for i in range(len(self.pins) - 1, -1, -1):
@@ -683,13 +923,29 @@ class ChessEngine:
                 else:
                     break
 
-    #Rules for all possible queen moves, combines rook and bishop moves in one to get all queen moves.
+
     def getQueenMoves(self, r, c, moves):
+        """
+        Generates all possible queen moves by combining rook and bishop moves.
+
+        Args:
+            r (int): Row of the queen.
+            c (int): Column of the queen.
+            moves (list): List to append valid queen moves.
+        """
         self.getRookMoves(r, c, moves)
         self.getBishopMoves(r, c, moves)
 
-    #Rules for all possible king moves
+
     def getKingMoves(self, r, c, moves): # pylint: disable=R0915
+        """
+        Generates all possible king moves, including castling.
+
+        Args:
+            r (int): Row of the king.
+            c (int): Column of the king.
+            moves (list): List to append valid king moves.
+        """
         rowMoves = (-1, -1, -1, 0, 0, 1, 1, 1)
         colMoves = (-1, 0, 1, -1, 1, -1, 0, 1)
         for i in range(8):
@@ -761,13 +1017,22 @@ class ChessEngine:
 
 
 class Move:
-    #Mapping list values to chessboard row names
+    """Represents a chess move with start and end positions, capturing, and special move flags."""
     ranksToRows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
     rowsToRanks = {v: k for k, v in ranksToRows.items()}
     filesToCols = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
     colsToFiles = {v: k for k, v in filesToCols.items()}
 
     def __init__(self, startSq, endSq, board, promotionChoice=None):
+        """
+        Initializes a move with start and end squares, and optional promotion.
+
+        Args:
+            startSq (tuple): (row, col) of the starting square.
+            endSq (tuple): (row, col) of the ending square.
+            board (list): The current board state.
+            promotionChoice (str, optional): The piece to promote to.
+        """
         self.startRow = startSq[0]
         self.startCol = startSq[1]
         self.endRow = endSq[0]
@@ -794,27 +1059,57 @@ class Move:
             self.rookCaptured = board[self.rookEnd[0]][self.rookEnd[1]]
 
     def __eq__(self, other):
+        """
+        Checks if two moves are equal based on their moveID.
+
+        Args:
+            other (Move): The move to compare with.
+
+        Returns:
+            bool: True if the moves are equal.
+        """
         if isinstance(other, Move):
             return self.moveID == other.moveID
         return False
 
-    #Converting chessboard row and column numbers to chessnotation.
     def getUCI(self):
+        """
+        Converts the move to UCI notation.
+
+        Returns:
+            str: The move in UCI format.
+        """
         uci = self.getRankFile(self.startRow, self.startCol) + self.getRankFile(self.endRow, self.endCol)
         if self.promotionChoice:
             uci += self.promotionChoice.lower()
         return uci
 
-    #Helper function for translating to UCI.
     def getRankFile(self, r, c):
+        """Helper function that translates row and column to UCI notation.
+
+        Args:
+            r (int): Row index.
+            c (int): Column index.
+
+        Returns:
+            str: UCI notation for the square.
+        """
         return self.colsToFiles[c] + self.rowsToRanks[r]
 
-    #For correct chess notation print in AI platform console#
     def __repr__(self):
+        """Returns the move in UCI notation for console output.
+
+        Returns:
+            str: The move in UCI format.
+        """
         return self.getUCI()
 
-#The main function is code mimiced from the example code from stupid-chess-ai.
+
 def main():
+    """
+    The main function is used for interaction between the AI platform.
+    Code is copied from the example code from stupid-chess-ai: https://github.com/game-ai-platform-team/stupid-chess-ai/tree/main.
+    """
     ai = ChessEngine()
 
     while True:
