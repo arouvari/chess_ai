@@ -1,7 +1,7 @@
 import time
 import random
 
-class ChessEngine:
+class ChessEngine: # pylint: disable=C0302
     """
     A chess engine that manages the game state, evaluates positions, and computes moves using a minimax algorithm with alpha-beta pruning.
     The engine represents the chessboard as an 8x8 grid, with pieces denoted by letters, uppercase for white and lowercase for black.
