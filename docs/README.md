@@ -15,3 +15,4 @@ This is a Chess AI project made for the University of Helsinki course Algorithms
 - [Weekly report 2](Week2_report.md)
 - [Weekly report 4](Week4_report.md)
 - [Weekly report 5](Week5_report.md)
+- [Weekly report 6](Week6_report.md)
